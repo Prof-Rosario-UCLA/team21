@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import PostCard from './PostCard';
+import api from '../services/api';
 
 function Feed() {
   const [articles, setArticles] = useState([]);
@@ -7,43 +8,22 @@ function Feed() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    // TODO: Fetch trend articles from backend API
-    // TODO: Implement real-time updates with Socket.io
-    
-    // Mock trend data for now
-    setTimeout(() => {
-      setArticles([
-        {
-          id: 1,
-          headline: "Rise of the Gluttonous Squirrels",
-          summary: "Campus squirrels have apparently organized into a sophisticated food-snatching operation. Students report increasingly bold tactics including coordinated backpack raids and strategic positioning near food trucks.",
-          trend: "squirrel-takeover",
-          relatedPosts: 12,
-          sentiment: "amused",
-          timestamp: new Date().toISOString()
-        },
-        {
-          id: 2,
-          headline: "Yall R Mad Depressed",
-          summary: "A concerning uptick in posts about academic burnout, midterm stress, and general existential dread. The collective UCLA mood has taken a notable downturn this week.",
-          trend: "mental-health-crisis",
-          relatedPosts: 8,
-          sentiment: "concerned",
-          timestamp: new Date().toISOString()
-        },
-        {
-          id: 3,
-          headline: "Lonely AF Go Touch Some Grass",
-          summary: "Students are increasingly posting about feeling isolated and spending too much time indoors. Time to rediscover the outdoors, Bruins.",
-          trend: "social-isolation",
-          relatedPosts: 15,
-          sentiment: "motivational",
-          timestamp: new Date().toISOString()
-        }
-      ]);
-      setLoading(false);
-    }, 1000);
+    fetchArticles();
   }, []);
+
+  const fetchArticles = async () => {
+    try {
+      setLoading(true);
+      const response = await api.getArticles(10);
+      setArticles(response.articles);
+      setError(null);
+    } catch (error) {
+      console.error('Error fetching articles:', error);
+      setError(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -62,7 +42,7 @@ function Feed() {
         <section className="text-center" role="alert">
           <p className="text-red-600">Error loading articles: {error}</p>
           <button 
-            onClick={() => window.location.reload()}
+            onClick={fetchArticles}
             className="mt-4 text-blue-600 hover:text-blue-700 underline"
           >
             Try again
@@ -88,7 +68,17 @@ function Feed() {
           <div className="space-y-6">
             {articles.length > 0 ? (
               articles.map(article => (
-                <PostCard key={article.id} article={article} />
+                <PostCard 
+                  key={article._id} 
+                  article={{
+                    ...article,
+                    id: article._id,
+                    summary: article.description,
+                    trend: article.trend_category,
+                    relatedPosts: article.post_count,
+                    timestamp: article.generated_at
+                  }} 
+                />
               ))
             ) : (
               <div className="text-center py-12 text-stone-500">

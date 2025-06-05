@@ -1,31 +1,69 @@
 import React, { useState } from 'react';
+import api from '../services/api';
+import { useAuth } from '../context/AuthContext';
 
 function PostCard({ article }) {
+  const { isAuthenticated } = useAuth();
   const [liked, setLiked] = useState(false);
   const [bookmarked, setBookmarked] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const handleLike = () => {
-    // TODO: Send like to backend API
-    setLiked(!liked);
+  const handleLike = async () => {
+    if (!isAuthenticated) {
+      // TODO: Show login modal
+      return;
+    }
+
+    try {
+      setLoading(true);
+      await api.likeArticle(article.id);
+      setLiked(!liked);
+    } catch (error) {
+      console.error('Error liking article:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleBookmark = () => {
-    // TODO: Send bookmark to backend API  
-    setBookmarked(!bookmarked);
+  const handleBookmark = async () => {
+    if (!isAuthenticated) {
+      // TODO: Show login modal
+      return;
+    }
+
+    try {
+      setLoading(true);
+      await api.bookmarkArticle(article.id);
+      setBookmarked(!bookmarked);
+    } catch (error) {
+      console.error('Error bookmarking article:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const getSentimentColor = (sentiment) => {
-    switch(sentiment) {
-      case 'amused': return 'text-green-600';
-      case 'concerned': return 'text-orange-600';
-      case 'motivational': return 'text-blue-600';
+    switch(sentiment.toLowerCase()) {
+      case 'positive': return 'text-green-600';
+      case 'negative': return 'text-red-600';
+      case 'neutral': return 'text-stone-600';
+      case 'mixed': return 'text-orange-600';
       default: return 'text-stone-600';
     }
   };
 
   const formatTimeAgo = (timestamp) => {
-    // TODO: Implement proper time formatting
-    return "2h ago";
+    const date = new Date(timestamp);
+    const now = new Date();
+    const seconds = Math.floor((now - date) / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
+
+    if (days > 0) return `${days}d ago`;
+    if (hours > 0) return `${hours}h ago`;
+    if (minutes > 0) return `${minutes}m ago`;
+    return 'just now';
   };
 
   return (
@@ -53,11 +91,12 @@ function PostCard({ article }) {
         <div className="flex items-center space-x-4">
           <button
             onClick={handleLike}
+            disabled={loading}
             className={`flex items-center space-x-1 text-xs transition-colors ${
               liked 
                 ? 'text-red-600' 
                 : 'text-stone-500 hover:text-stone-700'
-            }`}
+            } ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
             aria-label={liked ? "Unlike article" : "Like article"}
           >
             <span>{liked ? '♥' : '♡'}</span>
@@ -66,11 +105,12 @@ function PostCard({ article }) {
 
           <button
             onClick={handleBookmark}
+            disabled={loading}
             className={`flex items-center space-x-1 text-xs transition-colors ${
               bookmarked 
                 ? 'text-blue-600' 
                 : 'text-stone-500 hover:text-stone-700'
-            }`}
+            } ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
             aria-label={bookmarked ? "Remove bookmark" : "Bookmark article"}
           >
             <span>{bookmarked ? '★' : '☆'}</span>
@@ -78,9 +118,16 @@ function PostCard({ article }) {
           </button>
         </div>
 
-        <button className="text-xs text-blue-600 hover:text-blue-700 transition-colors">
-          View Sources
-        </button>
+        {article.referenced_posts && article.referenced_posts.length > 0 && (
+          <a 
+            href={`https://reddit.com${article.referenced_posts[0].permalink}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs text-blue-600 hover:text-blue-700 transition-colors"
+          >
+            View on Reddit
+          </a>
+        )}
       </footer>
     </article>
   );

@@ -4,6 +4,7 @@ import Header from './components/Header';
 import Feed from './components/Feed';
 import LoginModal from './components/LoginModal';
 import CookieBanner from './components/CookieBanner';
+import { AuthProvider } from './context/AuthContext';
 
 function App() {
   const [showLoginModal, setShowLoginModal] = useState(false);
@@ -17,18 +18,20 @@ function App() {
   };
 
   return (
-    <Router>
-      <div className="h-screen bg-orange-50 flex flex-col">
-        <Header onLoginClick={handleLoginClick} />
-        <main className="flex-1 overflow-hidden">
-          <Routes>
-            <Route path="/" element={<Feed />} />
-          </Routes>
-        </main>
-        <CookieBanner />
-        {showLoginModal && <LoginModal onClose={handleCloseLogin} />}
-      </div>
-    </Router>
+    <AuthProvider>
+      <Router>
+        <div className="h-screen bg-orange-50 flex flex-col">
+          <Header onLoginClick={handleLoginClick} />
+          <main className="flex-1 overflow-hidden">
+            <Routes>
+              <Route path="/" element={<Feed />} />
+            </Routes>
+          </main>
+          <CookieBanner />
+          {showLoginModal && <LoginModal onClose={handleCloseLogin} />}
+        </div>
+      </Router>
+    </AuthProvider>
   );
 }
 

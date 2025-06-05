@@ -2,14 +2,24 @@ require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const helmet = require('helmet');
+const cookieParser = require('cookie-parser');
 
 const articlesRouter = require('./routes/articles');
+const authRouter = require('./routes/auth');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Middleware
-app.use(cors());
+// Security middleware
+app.use(helmet());
+app.use(cors({
+  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  credentials: true
+}));
+app.use(cookieParser());
+
+// Body parsing middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -20,6 +30,7 @@ app.use((req, res, next) => {
 });
 
 // Routes
+app.use('/api/auth', authRouter);
 app.use('/api/articles', articlesRouter);
 
 // Health check endpoint
@@ -37,11 +48,17 @@ app.get('/', (req, res) => {
   res.json({
     message: 'UCLA Reddit Summarizer API',
     endpoints: {
-      health: '/api/health',
-      articles: '/api/articles',
-      generate: '/api/articles/generate',
-      stats: '/api/articles/system/stats',
-      test: '/api/articles/system/test'
+      auth: {
+        register: '/api/auth/register',
+        login: '/api/auth/login',
+        me: '/api/auth/me'
+      },
+      articles: {
+        list: '/api/articles',
+        generate: '/api/articles/generate',
+        stats: '/api/articles/system/stats'
+      },
+      health: '/api/health'
     }
   });
 });

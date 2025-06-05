@@ -1,9 +1,13 @@
 import React, { useState } from 'react';
+import { useAuth } from '../context/AuthContext';
 
 function LoginModal({ onClose }) {
+  const { login, register } = useAuth();
+  const [isRegistering, setIsRegistering] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
-    password: ''
+    password: '',
+    name: ''
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -20,20 +24,29 @@ function LoginModal({ onClose }) {
     setLoading(true);
     setError('');
     
-    // TODO: Implement actual authentication with backend
-    // TODO: Handle JWT tokens and cookies
-    
-    setTimeout(() => {
+    try {
+      if (isRegistering) {
+        await register(formData.email, formData.password, formData.name);
+      } else {
+        await login(formData.email, formData.password);
+      }
+      onClose();
+    } catch (error) {
+      setError(error.message);
+    } finally {
       setLoading(false);
-      console.log('Login attempt:', formData);
-      onClose(); // Close modal on successful login
-    }, 1000);
+    }
   };
 
   const handleOverlayClick = (e) => {
     if (e.target === e.currentTarget) {
       onClose();
     }
+  };
+
+  const toggleMode = () => {
+    setIsRegistering(!isRegistering);
+    setError('');
   };
 
   return (
@@ -44,7 +57,7 @@ function LoginModal({ onClose }) {
       <div className="bg-white rounded-lg p-8 w-full max-w-md shadow-lg">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-xl font-bold text-stone-800">
-            Sign In
+            {isRegistering ? 'Create Account' : 'Sign In'}
           </h1>
           <button 
             onClick={onClose}
@@ -56,10 +69,31 @@ function LoginModal({ onClose }) {
         </div>
 
         <p className="text-stone-600 text-sm mb-6">
-          Access your personalized trend feed
+          {isRegistering 
+            ? 'Join the UCLA community and start exploring trends'
+            : 'Access your personalized trend feed'
+          }
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {isRegistering && (
+            <div>
+              <label htmlFor="name" className="block text-sm font-semibold text-stone-700 mb-2">
+                Name
+              </label>
+              <input
+                type="text"
+                id="name"
+                name="name"
+                value={formData.name}
+                onChange={handleChange}
+                required={isRegistering}
+                className="w-full px-4 py-3 border border-stone-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                placeholder="Your name"
+              />
+            </div>
+          )}
+
           <div>
             <label htmlFor="email" className="block text-sm font-semibold text-stone-700 mb-2">
               Email
@@ -89,6 +123,7 @@ function LoginModal({ onClose }) {
               required
               className="w-full px-4 py-3 border border-stone-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
               placeholder="Your password"
+              minLength={8}
             />
           </div>
 
@@ -103,15 +138,24 @@ function LoginModal({ onClose }) {
             disabled={loading}
             className="w-full bg-blue-600 text-white py-3 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-semibold transition-colors"
           >
-            {loading ? 'Signing In...' : 'Sign In'}
+            {loading 
+              ? (isRegistering ? 'Creating Account...' : 'Signing In...') 
+              : (isRegistering ? 'Create Account' : 'Sign In')
+            }
           </button>
         </form>
 
         <div className="mt-6 text-center">
           <p className="text-xs text-stone-600">
-            Don't have an account? 
-            <button className="text-blue-600 hover:text-blue-700 ml-1 transition-colors">
-              Sign up here
+            {isRegistering 
+              ? 'Already have an account?' 
+              : "Don't have an account?"
+            }
+            <button 
+              onClick={toggleMode}
+              className="text-blue-600 hover:text-blue-700 ml-1 transition-colors"
+            >
+              {isRegistering ? 'Sign in here' : 'Sign up here'}
             </button>
           </p>
         </div>
