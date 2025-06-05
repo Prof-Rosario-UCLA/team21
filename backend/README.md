@@ -8,6 +8,7 @@ An AI-powered system that scrapes r/ucla, clusters trending posts, and generates
 - **AI Processing**: Gemini 2.0 Flash for clustering and article generation
 - **Storage**: MongoDB for articles and metadata
 - **API**: Express.js REST API
+- **Authentication**: JWT-based user authentication
 
 ## Quick Setup
 
@@ -22,6 +23,7 @@ Required credentials in `.env`:
 - `REDDIT_CLIENT_SECRET` - From Reddit app registration  
 - `GEMINI_API_KEY` - From Google AI Studio
 - `MONGODB_URI` - MongoDB connection string
+- `JWT_SECRET` - Secret key for JWT authentication (see JWT Setup below)
 
 ### 2. Install Dependencies
 
@@ -44,6 +46,56 @@ docker run -d -p 27017:27017 --name mongodb mongo:latest
 ```bash
 npm start
 ```
+
+## JWT Authentication Setup
+
+### 1. Generate JWT Secret
+
+Generate a secure random string for JWT signing:
+
+```bash
+node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
+```
+
+### 2. Configure JWT
+
+1. Copy the generated string
+2. Add it to your `.env` file:
+   ```
+   JWT_SECRET=your_generated_secret_here
+   ```
+
+### 3. Authentication Features
+
+- **User Registration**: POST `/api/auth/register`
+  ```json
+  {
+    "email": "user@example.com",
+    "password": "password123",
+    "name": "User Name"
+  }
+  ```
+
+- **User Login**: POST `/api/auth/login`
+  ```json
+  {
+    "email": "user@example.com",
+    "password": "password123"
+  }
+  ```
+
+- **Protected Routes**: Include JWT token in Authorization header
+  ```
+  Authorization: Bearer <your-jwt-token>
+  ```
+
+### 4. Security Notes
+
+- Never commit your JWT_SECRET to version control
+- Use different secrets for development and production
+- Rotate secrets periodically in production
+- Minimum password length: 8 characters
+- Passwords are hashed using bcrypt before storage
 
 ## Pipeline Process
 
