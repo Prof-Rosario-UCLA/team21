@@ -18,10 +18,10 @@ backend/           # Express.js API server
 
 ## Tech Stack
 - Frontend: React, Tailwind CSS
-- Backend: Express.js, Node.js (TODO)
-- Database: MongoDB with Mongoose (TODO)
+- Backend: Express.js, Node.js
+- Database: MongoDB with Mongoose 
 - Caching: Redis (TODO)
-- AI: OpenAI GPT API (TODO)
+- AI: Gemini + PRAW
 - Deployment: Google Kubernetes Engine (TODO)
 
 ## Setup
@@ -33,10 +33,10 @@ npm install
 npm start
 ```
 
-### Backend Development (TODO)
+### Backend Development
 ```bash
 cd backend
 npm install
-npm run dev
+npm start
 ```
 
