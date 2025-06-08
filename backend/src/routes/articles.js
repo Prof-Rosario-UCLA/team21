@@ -23,6 +23,77 @@ router.get('/', async (req, res) => {
   }
 });
 
+// Get today's articles with daily summary
+router.get('/today', async (req, res) => {
+  try {
+    const [todaysArticles, dailySummary] = await Promise.all([
+      pipelineService.getTodaysArticles(),
+      pipelineService.getDailySummary()
+    ]);
+    
+    res.json({
+      success: true,
+      daily_summary: dailySummary,
+      articles: todaysArticles,
+      count: todaysArticles.length
+    });
+  } catch (error) {
+    console.error('Error fetching today\'s articles:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch today\'s articles',
+      error: error.message
+    });
+  }
+});
+
+// Get past articles (before today)
+router.get('/past', async (req, res) => {
+  try {
+    const pastArticles = await pipelineService.getPastArticles();
+    
+    res.json({
+      success: true,
+      articles: pastArticles,
+      count: pastArticles.length
+    });
+  } catch (error) {
+    console.error('Error fetching past articles:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch past articles',
+      error: error.message
+    });
+  }
+});
+
+// Get daily summary by date
+router.get('/daily-summary/:date?', async (req, res) => {
+  try {
+    const date = req.params.date; // Optional date parameter
+    const dailySummary = await pipelineService.getDailySummary(date);
+    
+    if (!dailySummary) {
+      return res.status(404).json({
+        success: false,
+        message: 'No daily summary found for this date'
+      });
+    }
+    
+    res.json({
+      success: true,
+      daily_summary: dailySummary
+    });
+  } catch (error) {
+    console.error('Error fetching daily summary:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch daily summary',
+      error: error.message
+    });
+  }
+});
+
 // Get specific article by ID
 router.get('/:id', async (req, res) => {
   try {

@@ -95,6 +95,19 @@ class ApiService {
     return this.request(`/articles?limit=${limit}`);
   }
 
+  async getTodaysArticles() {
+    return this.request('/articles/today');
+  }
+
+  async getPastArticles() {
+    return this.request('/articles/past');
+  }
+
+  async getDailySummary(date = null) {
+    const endpoint = date ? `/articles/daily-summary/${date}` : '/articles/daily-summary';
+    return this.request(endpoint);
+  }
+
   async getArticleById(id) {
     return this.request(`/articles/${id}`);
   }

@@ -2,6 +2,7 @@ const redditService = require('./reddit');
 const geminiService = require('./gemini');
 const Article = require('../models/Article');
 const Metadata = require('../models/Metadata');
+const DailySummary = require('../models/DailySummary');
 
 class PipelineService {
   constructor() {
@@ -13,11 +14,11 @@ class PipelineService {
     console.log('Starting Reddit news generation pipeline...');
 
     try {
-      // Step 1: Get last processed timestamp
+      // Get last processed timestamp
       const lastTimestamp = await Metadata.getLastScrapedTimestamp();
       console.log(`Last scraped timestamp: ${lastTimestamp ? new Date(lastTimestamp * 1000).toISOString() : 'None (first run)'}`);
 
-      // Step 2: Fetch new posts from Reddit
+      // Fetch new posts from Reddit
       const redditResult = await redditService.fetchNewPosts(lastTimestamp);
       
       if (redditResult.count === 0) {
@@ -32,7 +33,7 @@ class PipelineService {
 
       console.log(`Fetched ${redditResult.count} new posts`);
 
-      // Step 3: Filter and validate posts
+      // Filter and validate posts
       const validPosts = redditService.filterValidPosts(redditResult.posts);
       console.log(`${validPosts.length} valid posts after filtering (10+ upvotes)`);
 
@@ -48,7 +49,7 @@ class PipelineService {
         };
       }
 
-      // Step 4: Sort posts by engagement and identify article opportunities
+      // Sort posts by engagement and identify article opportunities
       const sortedPosts = redditService.sortPostsByEngagement(validPosts);
       console.log('Identifying article opportunities with Gemini AI...');
       
@@ -67,45 +68,88 @@ class PipelineService {
         };
       }
 
-      // Step 5: Generate articles for each opportunity
+      // Generate articles and daily summary in one API call
       const generatedArticles = [];
+      const today = new Date().toISOString().split('T')[0];
+      let dailySummary = null;
       
-      for (const opportunity of articleOpportunities) {
+      if (articleOpportunities.length > 0) {
         try {
-          console.log(`Generating ${opportunity.type} article: ${opportunity.theme}`);
+          console.log(`Generating ${articleOpportunities.length} articles with daily summary...`);
           
-          const articleData = await geminiService.generateArticle(opportunity, sortedPosts);
-          const relevantPosts = sortedPosts.filter(post => opportunity.post_ids.includes(post.id));
+          const result = await geminiService.generateArticlesWithDailySummary(articleOpportunities, sortedPosts, today);
           
-          // Create and save article
-          const article = new Article({
-            headline: articleData.headline,
-            description: articleData.description,
-            content: articleData.content,
-            trend_category: articleData.trend_category,
-            referenced_posts: relevantPosts.map(post => ({
-              post_id: post.id,
-              title: post.title,
-              permalink: post.permalink,
-              score: post.score,
-              created_utc: post.created_utc
-            })),
-            post_count: relevantPosts.length,
-            sentiment: articleData.sentiment,
-            tags: articleData.tags || []
-          });
+          // Process each generated article
+          for (let i = 0; i < result.articles.length && i < articleOpportunities.length; i++) {
+            try {
+              const articleData = result.articles[i];
+              const opportunity = articleOpportunities[i];
+              const relevantPosts = sortedPosts.filter(post => opportunity.post_ids.includes(post.id));
+              
+              // Create and save article
+              const article = new Article({
+                headline: articleData.headline,
+                description: articleData.description,
+                content: articleData.content,
+                trend_category: articleData.trend_category,
+                referenced_posts: relevantPosts.map(post => ({
+                  post_id: post.id,
+                  title: post.title,
+                  permalink: post.permalink,
+                  score: post.score,
+                  created_utc: post.created_utc
+                })),
+                post_count: relevantPosts.length,
+                sentiment: articleData.sentiment,
+                tags: articleData.tags || []
+              });
 
-          await article.save();
-          generatedArticles.push(article);
+              await article.save();
+              generatedArticles.push(article);
+              
+              console.log(`Generated article: "${articleData.headline}"`);
+              
+            } catch (error) {
+              console.error(`Error saving article ${i}:`, error);
+            }
+          }
           
-          console.log(`Generated article: "${articleData.headline}"`);
+          // Save daily summary
+          if (result.daily_summary && generatedArticles.length > 0) {
+            try {
+              console.log('Saving daily mood summary...');
+              
+              // Calculate total engagement
+              const totalEngagement = generatedArticles.reduce((sum, article) => {
+                return sum + (article.referenced_posts?.reduce((postSum, post) => postSum + post.score, 0) || 0);
+              }, 0);
+              
+              dailySummary = await DailySummary.findOneAndUpdate(
+                { date: today },
+                {
+                  mood_emoji: result.daily_summary.mood_emoji,
+                  mood_title: result.daily_summary.mood_title,
+                  mood_description: result.daily_summary.mood_description,
+                  overall_sentiment: result.daily_summary.overall_sentiment,
+                  article_count: generatedArticles.length,
+                  total_engagement: totalEngagement,
+                  referenced_articles: generatedArticles.map(article => article._id)
+                },
+                { upsert: true, new: true }
+              );
+              
+              console.log(`Generated daily summary: ${result.daily_summary.mood_emoji} ${result.daily_summary.mood_title}`);
+            } catch (error) {
+              console.error('Error saving daily summary:', error);
+            }
+          }
           
         } catch (error) {
-          console.error(`Error generating article for ${opportunity.theme}:`, error);
+          console.error('Error generating articles with daily summary:', error);
         }
       }
 
-      // Step 6: Update metadata
+      // Update metadata
       await Metadata.updateLastScrapedTimestamp(redditResult.scrapedAt);
       
       const stats = await Metadata.getProcessingStats();
@@ -125,6 +169,10 @@ class PipelineService {
         postsProcessed: validPosts.length,
         opportunities: articleOpportunities.length,
         duration: duration,
+        daily_summary: dailySummary ? {
+          mood: `${dailySummary.mood_emoji} ${dailySummary.mood_title}`,
+          description: dailySummary.mood_description
+        } : null,
         articles: generatedArticles.map(article => ({
           id: article._id,
           headline: article.headline,
@@ -156,6 +204,54 @@ class PipelineService {
       return articles;
     } catch (error) {
       console.error('Error fetching recent articles:', error);
+      throw error;
+    }
+  }
+
+  async getTodaysArticles() {
+    try {
+      const today = new Date();
+      const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+      
+      const articles = await Article.find({
+        is_published: true,
+        generated_at: { $gte: startOfDay, $lt: endOfDay }
+      }).sort({ generated_at: -1 });
+      
+      return articles;
+    } catch (error) {
+      console.error('Error fetching today\'s articles:', error);
+      throw error;
+    }
+  }
+
+  async getPastArticles() {
+    try {
+      const today = new Date();
+      const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      
+      const articles = await Article.find({
+        is_published: true,
+        generated_at: { $lt: startOfDay }
+      }).sort({ generated_at: -1 });
+      
+      return articles;
+    } catch (error) {
+      console.error('Error fetching past articles:', error);
+      throw error;
+    }
+  }
+
+  async getDailySummary(date = null) {
+    try {
+      if (date) {
+        return await DailySummary.getSummaryByDate(date);
+      } else {
+        return await DailySummary.getTodaysSummary();
+      }
+    } catch (error) {
+      console.error('Error fetching daily summary:', error);
       throw error;
     }
   }

@@ -255,6 +255,129 @@ WRITING STYLE:
     }
   }
 
+  async generateArticlesWithDailySummary(articleOpportunities, posts, date) {
+    const prompt = `
+You are UCLA's witty campus news team! Generate funny articles for each trending topic AND create a daily mood summary for r/UCLA.
+
+DATE: ${date}
+
+ARTICLE OPPORTUNITIES:
+${articleOpportunities.map((opportunity, index) => {
+  const relevantPosts = posts.filter(post => opportunity.post_ids.includes(post.id));
+  const isViralPost = opportunity.type === 'single';
+  
+  return `
+ARTICLE ${index + 1}:
+Type: ${opportunity.type}
+Theme: ${opportunity.theme}
+Justification: ${opportunity.justification}
+
+POST DATA:
+${relevantPosts.map(post => `
+- Title: ${post.title}
+- Content: ${post.selftext || '[No content]'}
+- Score: ${post.score} upvotes | Comments: ${post.num_comments} | Engagement: ${post.engagement_score}
+- Top Comments: ${post.top_comments.slice(0, 3).map(c => c.body).join(' | ') || '[No comments]'}
+---
+`).join('')}
+
+Required: Write a ${isViralPost ? 'viral post spotlight' : 'trend report'} article with Gen Z humor and UCLA references.
+---
+`;
+}).join('')}
+
+WRITING GUIDELINES:
+- Gen Z humor with UCLA references (Westwood, Powell Cat, dining halls, etc.)
+- Appropriate slang that resonates with college students  
+- Light and entertaining, not mean-spirited
+- Each article should be 200-400 words
+
+DAILY MOOD SUMMARY:
+Based on all these articles, what's the overall UCLA campus vibe today? Create a witty mood summary.
+
+EXAMPLES:
+- "STRESSED AF" / "Finals week has everyone looking like Powell Cat after an all-nighter"
+- "HANGRY MODE" / "De Neve complaints have reached astronomical levels"
+- "PARTY READY" / "Bruins are officially done pretending to study"`;
+
+    const schema = {
+      type: "object",
+      properties: {
+        articles: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              headline: {
+                type: "string",
+                description: "Catchy headline that captures the trend or viral moment"
+              },
+              description: {
+                type: "string", 
+                description: "Brief description (1-2 sentences) referencing the posts"
+              },
+              content: {
+                type: "string",
+                description: "Full article (200-400 words) with UCLA humor and specific references"
+              },
+              sentiment: {
+                type: "string",
+                enum: ["positive", "negative", "neutral", "mixed"]
+              },
+              tags: {
+                type: "array",
+                items: {
+                  type: "string"
+                },
+                description: "Relevant tags"
+              },
+              trend_category: {
+                type: "string",
+                description: "The main theme or category"
+              },
+              article_type: {
+                type: "string",
+                enum: ["single", "trend"]
+              }
+            },
+            required: ["headline", "description", "content", "sentiment", "tags", "trend_category", "article_type"]
+          }
+        },
+        daily_summary: {
+          type: "object",
+          properties: {
+            mood_emoji: {
+              type: "string",
+              description: "Single emoji that captures the campus mood"
+            },
+            mood_title: {
+              type: "string",
+              description: "Short punchy title (2-4 words, ALL CAPS style)"
+            },
+            mood_description: {
+              type: "string", 
+              description: "Witty one-liner with UCLA references and Gen Z humor"
+            },
+            overall_sentiment: {
+              type: "string",
+              enum: ["positive", "negative", "neutral", "mixed"]
+            }
+          },
+          required: ["mood_emoji", "mood_title", "mood_description", "overall_sentiment"]
+        }
+      },
+      required: ["articles", "daily_summary"]
+    };
+
+    try {
+      const response = await this.callGeminiStructured(prompt, schema);
+      return response;
+    } catch (error) {
+      console.error('Error generating articles with daily summary:', error);
+      throw error;
+    }
+  }
+
   async testConnection() {
     try {
       const testPrompt = "Respond with a test message";

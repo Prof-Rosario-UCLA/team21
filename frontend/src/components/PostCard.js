@@ -120,7 +120,7 @@ function PostCard({ article }) {
 
         {article.referenced_posts && article.referenced_posts.length > 0 && (
           <a 
-            href={`https://reddit.com${article.referenced_posts[0].permalink}`}
+            href={`${article.referenced_posts[0].permalink}`}
             target="_blank"
             rel="noopener noreferrer"
             className="text-xs text-blue-600 hover:text-blue-700 transition-colors"
