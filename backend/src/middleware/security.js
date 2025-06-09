@@ -57,6 +57,9 @@ const csrfProtection = (req, res, next) => {
     '/api/articles',
     '/api/articles/today',
     '/api/articles/past',
+    '/api/auth/login',
+    '/api/auth/register',
+    '/api/auth/logout',
   ];
 
   const isPublicEndpoint = publicEndpoints.some(endpoint => 
