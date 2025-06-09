@@ -84,10 +84,26 @@ router.post('/login', async (req, res) => {
 
 // Get current user
 router.get('/me', auth, async (req, res) => {
-  res.json({
-    success: true,
-    user: req.user
-  });
+  try {
+    // Fetch fresh user data from database only when needed
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+    
+    res.json({
+      success: true,
+      user: user
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
 });
 
 // Update user profile
@@ -104,14 +120,23 @@ router.patch('/me', auth, async (req, res) => {
   }
 
   try {
+    // Fetch user from database for updates
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
     updates.forEach(update => {
-      req.user[update] = req.body[update];
+      user[update] = req.body[update];
     });
-    await req.user.save();
+    await user.save();
 
     res.json({
       success: true,
-      user: req.user
+      user: user
     });
   } catch (error) {
     res.status(400).json({

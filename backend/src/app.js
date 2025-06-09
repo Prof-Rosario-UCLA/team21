@@ -2,36 +2,81 @@ require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
-const helmet = require('helmet');
 const cookieParser = require('cookie-parser');
 
+// Import security middleware
+const {
+  generalLimiter,
+  authLimiter,
+  apiLimiter,
+  csrfProtection,
+  sanitizeInput,
+  helmetMiddleware,
+  hppProtection
+} = require('./middleware/security');
+
+// Import validation middleware
+const {
+  validateArticleQuery,
+  validateArticleId,
+  validateDateParam
+} = require('./middleware/validation');
+
+// Import routers
 const articlesRouter = require('./routes/articles');
 const authRouter = require('./routes/auth');
+const securityRouter = require('./routes/security');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+app.set('trust proxy', 1);
+
 // Security middleware
-app.use(helmet());
+app.use(helmetMiddleware);
+app.use(hppProtection);
+
 app.use(cors({
   origin: process.env.FRONTEND_URL || 'http://localhost:3000',
-  credentials: true
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token', 'X-CSRF-Secret']
 }));
+
 app.use(cookieParser());
 
-// Body parsing middleware
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// Rate limiting
+app.use(generalLimiter);
 
-// Request logging
+// Body parsing middleware with size limits
+app.use(express.json({ 
+  limit: '10mb',
+  verify: (req, res, buf) => {
+    req.rawBody = buf;
+  }
+}));
+app.use(express.urlencoded({ 
+  extended: true, 
+  limit: '10mb' 
+}));
+
+// Input sanitization
+app.use(sanitizeInput);
+
+// Request logging with IP
 app.use((req, res, next) => {
-  console.log(`${req.method} ${req.path} - ${new Date().toISOString()}`);
+  const ip = req.ip || req.connection.remoteAddress;
+  console.log(`${req.method} ${req.path} - IP: ${ip} - ${new Date().toISOString()}`);
   next();
 });
 
-// Routes
-app.use('/api/auth', authRouter);
-app.use('/api/articles', articlesRouter);
+// CSRF protection middleware - applied after body parsing
+app.use(csrfProtection);
+
+// Routes with specific security measures
+app.use('/api/security', securityRouter);
+app.use('/api/auth', authLimiter, authRouter);
+app.use('/api/articles', apiLimiter, articlesRouter);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
@@ -84,10 +129,7 @@ app.use('*', (req, res) => {
 // MongoDB connection
 async function connectToDatabase() {
   try {
-    await mongoose.connect(process.env.MONGODB_URI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true
-    });
+    await mongoose.connect(process.env.MONGODB_URI);
     console.log('Connected to MongoDB');
   } catch (error) {
     console.error('MongoDB connection error:', error);

@@ -1,9 +1,14 @@
 const express = require('express');
 const router = express.Router();
 const pipelineService = require('../services/pipeline');
+const {
+  validateArticleQuery,
+  validateArticleId,
+  validateDateParam
+} = require('../middleware/validation');
 
 // Get recent articles
-router.get('/', async (req, res) => {
+router.get('/', validateArticleQuery, async (req, res) => {
   try {
     const limit = parseInt(req.query.limit) || 10;
     const articles = await pipelineService.getRecentArticles(limit);
@@ -68,7 +73,7 @@ router.get('/past', async (req, res) => {
 });
 
 // Get daily summary by date
-router.get('/daily-summary/:date?', async (req, res) => {
+router.get('/daily-summary/:date?', validateDateParam, async (req, res) => {
   try {
     const date = req.params.date; // Optional date parameter
     const dailySummary = await pipelineService.getDailySummary(date);
@@ -95,7 +100,7 @@ router.get('/daily-summary/:date?', async (req, res) => {
 });
 
 // Get specific article by ID
-router.get('/:id', async (req, res) => {
+router.get('/:id', validateArticleId, async (req, res) => {
   try {
     const article = await pipelineService.getArticleById(req.params.id);
     
@@ -121,6 +126,31 @@ router.get('/:id', async (req, res) => {
 });
 
 /* FOR DEVELOPMENT ONLY : REMOVE LATER */
+
+// Reset timestamp to force re-processing of articles
+router.post('/reset-timestamp', async (req, res) => {
+  try {
+    const Metadata = require('../models/Metadata');
+    
+    // Delete the last scraped timestamp
+    await Metadata.deleteOne({ key: 'last_scraped_timestamp' });
+    
+    console.log('Reset last scraped timestamp - next run will process past 2 days');
+    
+    res.json({
+      success: true,
+      message: 'Timestamp reset successfully. Next pipeline run will fetch posts from past 2 days.',
+      note: 'Run /api/articles/generate to trigger pipeline with reset timestamp'
+    });
+  } catch (error) {
+    console.error('Error resetting timestamp:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to reset timestamp',
+      error: error.message
+    });
+  }
+});
 
 // Trigger pipeline manually
 router.post('/generate', async (req, res) => {
