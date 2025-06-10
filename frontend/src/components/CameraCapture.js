@@ -148,8 +148,13 @@ function CameraCapture({ onCapture, onClose }) {
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
 
-    // Draw video frame to canvas
-    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+    // If using front camera, flip the captured image to match the preview
+    if (facingMode === 'user') {
+      context.scale(-1, 1);
+      context.drawImage(video, -canvas.width, 0, canvas.width, canvas.height);
+    } else {
+      context.drawImage(video, 0, 0, canvas.width, canvas.height);
+    }
 
     // Convert to blob
     canvas.toBlob((blob) => {
