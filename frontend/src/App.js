@@ -65,6 +65,8 @@ function ProfileMenu({ user, onLogout, isMobile = false, isTablet = false }) {
             setProfilePicture(imageData);
           } catch (error) {
             console.error('Failed to update profile picture:', error);
+            // Show user-friendly error message
+            alert(error.message || 'Failed to update profile picture. Please try again.');
           }
           setIsUploading(false);
         };
@@ -84,6 +86,8 @@ function ProfileMenu({ user, onLogout, isMobile = false, isTablet = false }) {
       setShowCamera(false);
     } catch (error) {
       console.error('Failed to update profile picture:', error);
+      // Show user-friendly error message
+      alert(error.message || 'Failed to update profile picture. Please try again.');
     } finally {
       setIsUploading(false);
     }
@@ -382,11 +386,7 @@ function SidebarLogin({ onLoginClick, isMobile = false, isTablet = false }) {
   const { user, logout, isAuthenticated } = useAuth();
 
   const handleLogout = async () => {
-    try {
-      await logout();
-    } catch (error) {
-      console.error('Logout failed:', error);
-    }
+    await logout(); // No need for try/catch since logout now handles offline gracefully
   };
 
   if (isMobile) {

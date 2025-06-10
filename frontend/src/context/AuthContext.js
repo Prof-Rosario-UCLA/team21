@@ -50,21 +50,40 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
-      await api.logout();
-      setUser(null);
+      // Check if we're online before making API call
+      if (navigator.onLine) {
+        await api.logout();
+      } else {
+        console.log('Offline logout: clearing local auth state only');
+      }
     } catch (error) {
       console.error('Logout failed:', error);
-      throw error;
+      // Continue with local logout regardless of API error
+    } finally {
+      // Always clear local auth state for logout
+      setUser(null);
+      localStorage.removeItem('auth_token');
     }
   };
 
   const updateProfilePicture = async (imageData) => {
     try {
+      // Check if we're online before making API call
+      if (!navigator.onLine) {
+        throw new Error('Cannot update profile picture while offline. Please check your internet connection and try again.');
+      }
+      
       const response = await api.updateProfilePicture(imageData);
       setUser(response.user);
       return response;
     } catch (error) {
       console.error('Profile picture update failed:', error);
+      
+      // Provide better error messages for offline scenarios
+      if (error.message.includes('offline') || error.message.includes('fetch') || !navigator.onLine) {
+        throw new Error('Cannot update profile picture while offline. Please check your internet connection and try again.');
+      }
+      
       throw error;
     }
   };

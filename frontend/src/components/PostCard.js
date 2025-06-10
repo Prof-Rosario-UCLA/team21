@@ -45,13 +45,11 @@ function PostCard({ article }) {
 
   const getSentimentColor = (sentiment) => {
     switch(sentiment.toLowerCase()) {
-      case 'discussion': return 'bg-blue-100 text-blue-800';
-      case 'question': return 'bg-purple-100 text-purple-800';
-      case 'announcement': return 'bg-yellow-100 text-yellow-800';
-      case 'experience': return 'bg-green-100 text-green-800';
-      case 'advice': return 'bg-orange-100 text-orange-800';
-      case 'resource': return 'bg-teal-100 text-teal-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'positive': return 'bg-green-100 text-green-800 border-green-200';
+      case 'negative': return 'bg-red-100 text-red-800 border-red-200';
+      case 'neutral': return 'bg-gray-100 text-gray-800 border-gray-200';
+      case 'mixed': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
 
@@ -87,7 +85,7 @@ function PostCard({ article }) {
           {article.headline}
         </h2>
         <div className="flex items-center text-xs space-x-4">
-          <span className={`px-2 py-1 rounded-full font-medium ${getSentimentColor(article.sentiment)}`}>
+          <span className={`px-2 py-1 rounded-full font-medium border ${getSentimentColor(article.sentiment)}`}>
             {article.sentiment}
           </span>
           <span className="text-stone-500">{article.referenced_posts?.length || 0} related posts</span>

@@ -76,7 +76,7 @@ class RedditService {
       // Filter out deleted posts, spam, etc.
       if (!post.title || post.title === '[deleted]') return false;
       if (post.author === '[deleted]') return false;
-      if (post.score < 10) return false; // Only posts with 10+ upvotes
+      if (post.score < 10) return false; // Only posts with 10+ upvotes 
       
       return true;
     });
