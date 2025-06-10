@@ -37,18 +37,18 @@ function Feed() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <main className="min-h-screen flex items-center justify-center">
         <section className="text-center" aria-live="polite">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
           <p className="mt-4 text-stone-600">Analyzing campus trends...</p>
         </section>
-      </div>
+      </main>
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <main className="min-h-screen flex items-center justify-center">
         <section className="text-center" role="alert">
           <p className="text-red-600">Error loading articles: {error}</p>
           <button 
@@ -58,30 +58,28 @@ function Feed() {
             Try again
           </button>
         </section>
-      </div>
+      </main>
     );
   }
 
   return (
-    <div className="w-full">
+    <main className="w-full">
       <div className="container mx-auto px-4 md:px-6 py-8 max-w-4xl">
-        <section className="space-y-8">
-          <DailyMoodHeader dailySummary={dailySummary} />
+        <DailyMoodHeader dailySummary={dailySummary} />
+        
+        <section className="space-y-6" aria-label="Campus trend articles">
+          {articles.map((article) => (
+            <PostCard key={article._id} article={article} />
+          ))}
           
-          <div className="space-y-6">
-            {articles.map((article) => (
-              <PostCard key={article._id} article={article} />
-            ))}
-            
-            {articles.length === 0 && (
-              <div className="text-center py-12 text-stone-500">
-                No trends detected. The campus is suspiciously quiet...
-              </div>
-            )}
-          </div>
+          {articles.length === 0 && (
+            <div className="text-center py-12 text-stone-500">
+              No trends detected. The campus is suspiciously quiet...
+            </div>
+          )}
         </section>
       </div>
-    </div>
+    </main>
   );
 }
 
