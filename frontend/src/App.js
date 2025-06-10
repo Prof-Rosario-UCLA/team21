@@ -5,9 +5,23 @@ import Feed from './components/Feed';
 import LoginModal from './components/LoginModal';
 import CookieBanner from './components/CookieBanner';
 import CameraCapture from './components/CameraCapture';
+import PWAInstallPrompt from './components/PWAInstallPrompt';
 import { AuthProvider } from './context/AuthContext';
 import { useAuth } from './context/AuthContext';
 import api from './services/api';
+
+// Service Worker Registration
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js')
+      .then((registration) => {
+        console.log('SW registered: ', registration);
+      })
+      .catch((registrationError) => {
+        console.log('SW registration failed: ', registrationError);
+      });
+  });
+}
 
 function ProfileMenu({ user, onLogout, isMobile = false, isTablet = false }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -538,6 +552,7 @@ function AppContent() {
 
       {showModal && <LoginModal onClose={closeModal} />}
       <CookieBanner />
+      <PWAInstallPrompt />
     </div>
   );
 }
