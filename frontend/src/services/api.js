@@ -5,6 +5,8 @@ const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api
 class ApiService {
   constructor() {
     this.token = localStorage.getItem('authToken');
+    this.csrfToken = null;
+    this.csrfSecret = null;
   }
 
   async request(endpoint, options = {}) {
@@ -23,6 +25,30 @@ class ApiService {
       config.headers.Authorization = `Bearer ${this.token}`;
     }
 
+    // Skip CSRF for public endpoints
+    const publicEndpoints = [
+      '/auth/login',
+      '/auth/register',
+      '/auth/logout',
+      '/auth/me',
+      '/auth/me/profile-picture',
+      '/articles',
+      '/articles/today',
+      '/articles/past'
+    ];
+
+    const isPublicEndpoint = publicEndpoints.some(pubEndpoint => 
+      endpoint === pubEndpoint || endpoint.startsWith(pubEndpoint + '/')
+    );
+
+    if (!isPublicEndpoint && options.method !== 'GET') {
+      if (!this.csrfToken || !this.csrfSecret) {
+        await this.fetchCSRFToken();
+      }
+      config.headers['X-CSRF-Token'] = this.csrfToken;
+      config.headers['X-CSRF-Secret'] = this.csrfSecret;
+    }
+
     try {
       const response = await fetch(url, config);
       
@@ -34,6 +60,20 @@ class ApiService {
       return await response.json();
     } catch (error) {
       console.error('API request failed:', error);
+      throw error;
+    }
+  }
+
+  async fetchCSRFToken() {
+    try {
+      const response = await fetch(`${API_BASE_URL}/security/csrf-token`, {
+        credentials: 'include'
+      });
+      const data = await response.json();
+      this.csrfToken = data.csrf_token;
+      this.csrfSecret = data.csrf_secret;
+    } catch (error) {
+      console.error('Failed to fetch CSRF token:', error);
       throw error;
     }
   }
@@ -88,6 +128,13 @@ class ApiService {
       localStorage.removeItem('authToken');
       return null;
     }
+  }
+
+  async updateProfilePicture(imageData) {
+    return this.request('/auth/me/profile-picture', {
+      method: 'POST',
+      body: JSON.stringify({ imageData })
+    });
   }
 
   // Articles

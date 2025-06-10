@@ -58,6 +58,17 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const updateProfilePicture = async (imageData) => {
+    try {
+      const response = await api.updateProfilePicture(imageData);
+      setUser(response.user);
+      return response;
+    } catch (error) {
+      console.error('Profile picture update failed:', error);
+      throw error;
+    }
+  };
+
   const value = {
     user,
     loading,
@@ -65,6 +76,7 @@ export const AuthProvider = ({ children }) => {
     login,
     logout,
     register,
+    updateProfilePicture,
     isAuthenticated: !!user
   };
 

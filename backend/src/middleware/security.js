@@ -19,13 +19,13 @@ const createRateLimit = (windowMs, max, message) => {
     standardHeaders: true,
     legacyHeaders: false,
     // Don't rate limit localhost for testing
-    // skip: (req) => {
-    //   if (process.env.NODE_ENV === 'development' && 
-    //       (req.ip === '127.0.0.1' || req.ip === '::1' || req.ip === '::ffff:127.0.0.1')) {
-    //     return true;
-    //   }
-    //   return false;
-    // }
+    skip: (req) => {
+      if (process.env.NODE_ENV === 'development' && 
+          (req.ip === '127.0.0.1' || req.ip === '::1' || req.ip === '::ffff:127.0.0.1')) {
+        return true;
+      }
+      return false;
+    }
   });
 };
 
@@ -60,6 +60,8 @@ const csrfProtection = (req, res, next) => {
     '/api/auth/login',
     '/api/auth/register',
     '/api/auth/logout',
+    '/api/auth/me',
+    '/api/auth/me/profile-picture'
   ];
 
   const isPublicEndpoint = publicEndpoints.some(endpoint => 

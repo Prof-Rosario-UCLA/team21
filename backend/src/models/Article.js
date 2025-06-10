@@ -31,8 +31,8 @@ const articleSchema = new mongoose.Schema({
   },
   sentiment: {
     type: String,
-    enum: ['positive', 'negative', 'neutral', 'mixed'],
-    default: 'neutral'
+    enum: ['discussion', 'question', 'announcement', 'experience', 'advice', 'resource'],
+    default: 'discussion'
   },
   tags: [String],
   generated_at: {

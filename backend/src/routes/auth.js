@@ -146,6 +146,41 @@ router.patch('/me', auth, async (req, res) => {
   }
 });
 
+// Update user profile picture
+router.post('/me/profile-picture', auth, async (req, res) => {
+  try {
+    const { imageData } = req.body;
+    
+    if (!imageData) {
+      return res.status(400).json({
+        success: false,
+        message: 'No image data provided'
+      });
+    }
+
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    user.profilePicture = imageData;
+    await user.save();
+
+    res.json({
+      success: true,
+      user: user
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      message: error.message
+    });
+  }
+});
+
 // Logout user
 router.post('/logout', auth, async (req, res) => {
   try {

@@ -13,31 +13,14 @@ function Header({ onLoginClick }) {
   };
 
   return (
-    <header className="bg-orange-50 px-6 py-4">
-      <nav className="container mx-auto flex justify-end items-center" role="navigation" aria-label="Main navigation">
-        <div className="flex items-center">
-          {isAuthenticated ? (
-            <div className="flex items-center space-x-3">
-              <span className="text-sm text-stone-600">
-                Welcome, {user.name || 'Bruin'}
-              </span>
-              <button 
-                onClick={handleLogout}
-                className="text-sm text-stone-600 hover:text-stone-800 transition-colors"
-              >
-                Logout
-              </button>
-            </div>
-          ) : (
-            <button 
-              onClick={onLoginClick}
-              className="text-sm text-blue-600 hover:text-blue-700 transition-colors"
-            >
-              Login
-            </button>
-          )}
-        </div>
-      </nav>
+    <header className="sticky top-0 bg-white/80 backdrop-blur-sm border-b border-gray-200 z-50">
+      <div className="h-16 px-6">
+        <nav className="h-full flex items-center justify-center" role="navigation">
+          <div className="text-lg font-medium text-stone-600">
+            Today's Campus Trends
+          </div>
+        </nav>
+      </div>
     </header>
   );
 }

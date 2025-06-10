@@ -26,27 +26,39 @@ function DailyMoodHeader({ dailySummary }) {
 
   const getSentimentColor = (sentiment) => {
     switch (sentiment) {
-      case 'positive':
-        return 'text-green-600';
-      case 'negative':
-        return 'text-red-600';
-      case 'mixed':
-        return 'text-purple-600';
+      case 'discussion':
+        return 'text-blue-800';
+      case 'question':
+        return 'text-purple-800';
+      case 'announcement':
+        return 'text-yellow-800';
+      case 'experience':
+        return 'text-green-800';
+      case 'advice':
+        return 'text-orange-800';
+      case 'resource':
+        return 'text-teal-800';
       default:
-        return 'text-blue-600';
+        return 'text-stone-800';
     }
   };
 
   const getSentimentBg = (sentiment) => {
     switch (sentiment) {
-      case 'positive':
-        return 'from-green-50 to-blue-50';
-      case 'negative':
-        return 'from-red-50 to-orange-50';
-      case 'mixed':
-        return 'from-purple-50 to-pink-50';
+      case 'discussion':
+        return 'from-blue-50 to-blue-100';
+      case 'question':
+        return 'from-purple-50 to-purple-100';
+      case 'announcement':
+        return 'from-yellow-50 to-yellow-100';
+      case 'experience':
+        return 'from-green-50 to-green-100';
+      case 'advice':
+        return 'from-orange-50 to-orange-100';
+      case 'resource':
+        return 'from-teal-50 to-teal-100';
       default:
-        return 'from-blue-50 to-orange-50';
+        return 'from-stone-50 to-stone-100';
     }
   };
 
