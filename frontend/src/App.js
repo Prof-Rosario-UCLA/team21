@@ -451,7 +451,7 @@ function AppContent() {
   };
 
   return (
-    <div className="min-h-screen bg-stone-100">
+    <div className="min-h-screen bg-orange-50/30">
       {/* Add global styles for hiding scrollbars */}
       <style jsx global>{`
         .hide-scrollbar {
@@ -469,7 +469,7 @@ function AppContent() {
       {/* Desktop Layout - screens >= 1200px (xl breakpoint) */}
       <div className="hidden xl:flex">
         {/* Left Sidebar - Desktop */}
-        <aside className="fixed left-0 top-0 w-1/5 h-screen bg-stone-200 border-r border-stone-300 z-10">
+        <aside className="fixed left-0 top-0 w-1/5 h-screen bg-orange-50/40 border-r border-orange-100 z-10">
           <div className="p-6">
             <h1 className="text-2xl font-bold text-blue-600">BruinDigest</h1>
           </div>
@@ -477,7 +477,7 @@ function AppContent() {
 
         {/* Main Content - Desktop */}
         <main className="flex-1 ml-[20%] mr-[20%]">
-          <header className="fixed top-0 left-[20%] right-[20%] bg-stone-200/90 backdrop-blur-sm border-b border-stone-300 z-20">
+          <header className="fixed top-0 left-[20%] right-[20%] bg-orange-50/60 backdrop-blur-sm border-b border-orange-100 z-20">
             <div className="flex items-center justify-center h-16">
               <h2 className="text-lg font-semibold text-stone-700">Today's Campus Trends</h2>
             </div>
@@ -490,7 +490,7 @@ function AppContent() {
         </main>
 
         {/* Right Sidebar - Desktop */}
-        <aside className="fixed right-0 top-0 w-1/5 h-screen bg-stone-200 border-l border-stone-300 z-10">
+        <aside className="fixed right-0 top-0 w-1/5 h-screen bg-orange-50/40 border-l border-orange-100 z-10">
           <SidebarLogin onLoginClick={handleLoginClick} />
         </aside>
       </div>
@@ -498,7 +498,7 @@ function AppContent() {
       {/* Large Tablet Layout - screens 1024px to 1199px (lg to xl breakpoint) */}
       <div className="hidden lg:flex xl:hidden flex-col h-screen">
         {/* Large Tablet Header - Fixed */}
-        <header className="fixed top-0 left-0 right-0 bg-stone-200/90 backdrop-blur-sm border-b border-stone-300 z-20 px-6 py-4">
+        <header className="fixed top-0 left-0 right-0 bg-orange-50/60 backdrop-blur-sm border-b border-orange-100 z-20 px-6 py-4">
           <nav className="flex items-center justify-between">
             <h1 className="text-xl font-bold text-blue-600">BruinDigest</h1>
             <h2 className="text-lg font-semibold text-stone-700">Today's Campus Trends</h2>
@@ -517,7 +517,7 @@ function AppContent() {
       {/* Tablet Layout - screens 768px to 1023px (md to lg breakpoint) */}
       <div className="hidden md:flex lg:hidden flex-col h-screen">
         {/* Tablet Header - Fixed */}
-        <header className="fixed top-0 left-0 right-0 bg-stone-200/90 backdrop-blur-sm border-b border-stone-300 z-20 px-6 py-4">
+        <header className="fixed top-0 left-0 right-0 bg-orange-50/60 backdrop-blur-sm border-b border-orange-100 z-20 px-6 py-4">
           <nav className="flex items-center justify-between">
             <h1 className="text-xl font-bold text-blue-600">BruinDigest</h1>
             <SidebarLogin onLoginClick={handleLoginClick} isTablet={true} />
@@ -535,7 +535,7 @@ function AppContent() {
       {/* Mobile Layout - screens < 768px (below md breakpoint) */}
       <div className="md:hidden flex flex-col h-screen">
         {/* Mobile Header - Fixed */}
-        <header className="fixed top-0 left-0 right-0 bg-stone-200/90 backdrop-blur-sm border-b border-stone-300 z-20 px-4 py-3">
+        <header className="fixed top-0 left-0 right-0 bg-orange-50/60 backdrop-blur-sm border-b border-orange-100 z-20 px-4 py-3">
           <nav className="flex items-center justify-between">
             <h1 className="text-xl font-bold text-blue-600">B</h1>
             <SidebarLogin onLoginClick={handleLoginClick} isMobile={true} />

@@ -77,7 +77,7 @@ function PostCard({ article }) {
 
   return (
     <article 
-      className={`bg-white border border-gray-200 rounded-lg p-6 hover:shadow-lg transition-all duration-200 ${expanded ? 'shadow-lg' : 'shadow-sm'}`}
+      className={`bg-orange-50/20 border-2 border-orange-100 rounded-lg p-6 hover:shadow-lg transition-all duration-200 ${expanded ? 'shadow-lg border-orange-300' : 'shadow-sm'}`}
       onClick={toggleExpand}
     >
       <header className="mb-4">
@@ -107,7 +107,7 @@ function PostCard({ article }) {
         )}
       </section>
 
-      <footer className="flex items-center justify-between pt-4 border-t border-gray-200">
+      <footer className="flex items-center justify-between pt-4 border-t border-orange-100">
         <div className="flex items-center space-x-4">
           <button
             onClick={(e) => {
@@ -152,7 +152,7 @@ function PostCard({ article }) {
                 href={post.permalink}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-xs px-2 py-1 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded transition-colors"
+                className="text-xs px-2 py-1 bg-orange-100/60 text-orange-700 hover:bg-orange-100 rounded transition-colors"
               >
                 {article.referenced_posts.length === 1 ? 'Reddit Post' : `Reddit Post ${index + 1}`}
               </a>

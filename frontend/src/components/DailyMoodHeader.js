@@ -3,7 +3,7 @@ import React from 'react';
 function DailyMoodHeader({ dailySummary }) {
   if (!dailySummary) {
     return (
-      <div className="text-center py-8 bg-gradient-to-r from-blue-50 to-orange-50 rounded-lg mb-6">
+      <div className="text-center py-8 bg-orange-50/30 rounded-lg mb-6">
         <div className="animate-pulse">
           <div className="h-4 bg-gray-200 rounded w-48 mx-auto mb-3"></div>
           <div className="h-6 bg-gray-200 rounded w-64 mx-auto mb-2"></div>
@@ -26,6 +26,14 @@ function DailyMoodHeader({ dailySummary }) {
 
   const getSentimentColor = (sentiment) => {
     switch (sentiment) {
+      case 'positive':
+        return 'text-green-800';
+      case 'negative':
+        return 'text-red-800';
+      case 'neutral':
+        return 'text-gray-800';
+      case 'mixed':
+        return 'text-purple-800';
       case 'discussion':
         return 'text-blue-800';
       case 'question':
@@ -43,27 +51,8 @@ function DailyMoodHeader({ dailySummary }) {
     }
   };
 
-  const getSentimentBg = (sentiment) => {
-    switch (sentiment) {
-      case 'discussion':
-        return 'from-blue-50 to-blue-100';
-      case 'question':
-        return 'from-purple-50 to-purple-100';
-      case 'announcement':
-        return 'from-yellow-50 to-yellow-100';
-      case 'experience':
-        return 'from-green-50 to-green-100';
-      case 'advice':
-        return 'from-orange-50 to-orange-100';
-      case 'resource':
-        return 'from-teal-50 to-teal-100';
-      default:
-        return 'from-stone-50 to-stone-100';
-    }
-  };
-
   return (
-    <header className={`text-center py-8 bg-gradient-to-r ${getSentimentBg(dailySummary.overall_sentiment)} rounded-lg mb-6 border border-gray-100`}>
+    <header className="text-center py-8 bg-orange-50/30 rounded-lg mb-6">
       <div className="max-w-2xl mx-auto px-4">
         <time className="text-sm text-stone-600 font-medium block mb-3">
           {formatDate()}

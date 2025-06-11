@@ -13,7 +13,7 @@ function Header({ onLoginClick }) {
   };
 
   return (
-    <header className="sticky top-0 bg-white/80 backdrop-blur-sm border-b border-gray-200 z-50">
+    <header className="sticky top-0 bg-orange-50/60 backdrop-blur-sm border-b border-orange-100 z-50">
       <div className="h-16 px-6">
         <nav className="h-full flex items-center justify-center" role="navigation">
           <div className="text-lg font-medium text-stone-600">

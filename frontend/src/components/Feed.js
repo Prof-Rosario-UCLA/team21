@@ -5,7 +5,8 @@ import useOnlineStatus from '../hooks/useOnlineStatus';
 import api from '../services/api';
 
 function Feed() {
-  const [articles, setArticles] = useState([]);
+  const [todaysArticles, setTodaysArticles] = useState([]);
+  const [pastArticles, setPastArticles] = useState([]);
   const [dailySummary, setDailySummary] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -37,10 +38,8 @@ function Feed() {
         api.getPastArticles()
       ]);
       
-      // Combine today's and past articles into a single array
-      const allArticles = [...todayResponse.articles, ...pastResponse.articles];
-      
-      setArticles(allArticles);
+      setTodaysArticles(todayResponse.articles);
+      setPastArticles(pastResponse.articles);
       setDailySummary(todayResponse.daily_summary);
       setRetryCount(0); // Reset retry count on success
       setHasFetched(true); // Mark as fetched to prevent duplicate calls
@@ -75,7 +74,7 @@ function Feed() {
     fetchData();
   };
 
-  if (loading && articles.length === 0) {
+  if (loading && todaysArticles.length === 0 && pastArticles.length === 0) {
     return (
       <main className="min-h-screen flex items-center justify-center">
         <section className="text-center" aria-live="polite">
@@ -94,11 +93,11 @@ function Feed() {
   }
 
   return (
-    <main className="w-full">
+    <main className="w-full bg-orange-50/30 min-h-screen">
       <div className="container mx-auto px-4 md:px-6 py-8 max-w-4xl">
         {/* Offline Banner */}
         {!isOnline && (
-          <section className="mb-6 bg-orange-100 border border-orange-300 rounded-lg p-4" role="alert">
+          <section className="mb-6 bg-orange-100/70 border border-orange-200 rounded-lg p-4" role="alert">
             <div className="flex items-center space-x-3">
               <svg className="w-5 h-5 text-orange-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.962-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
@@ -115,7 +114,7 @@ function Feed() {
 
         {/* Error Banner */}
         {error && error.type === 'server' && (
-          <section className="mb-6 bg-red-100 border border-red-300 rounded-lg p-4" role="alert">
+          <section className="mb-6 bg-red-100/70 border border-red-200 rounded-lg p-4" role="alert">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
                 <svg className="w-5 h-5 text-red-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -138,46 +137,72 @@ function Feed() {
 
         <DailyMoodHeader dailySummary={dailySummary} />
         
-        <section className="space-y-6" aria-label="Campus trend articles">
-          {articles.map((article) => (
-            <PostCard key={article._id} article={article} />
-          ))}
-          
-          {articles.length === 0 && !loading && (
-            <div className="text-center py-12">
-              {error ? (
-                <div className="text-stone-500">
-                  <svg className="w-12 h-12 mx-auto mb-4 text-stone-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 12h6m-6-4h6m2 5.291A7.962 7.962 0 0112 15c-2.34 0-4.29-1.009-5.824-2.563M15 9a6 6 0 11-6 0 6 6 0 016 0z" />
-                  </svg>
-                  <p className="text-lg font-medium mb-2">
-                    {!isOnline ? 'No cached content available' : 'Unable to load content'}
-                  </p>
-                  <p className="text-sm">
-                    {!isOnline 
-                      ? 'Please check your internet connection and try again.'
-                      : 'Please try refreshing the page or check back later.'}
-                  </p>
-                  {isOnline && (
-                    <button
-                      onClick={handleRetry}
-                      className="mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-                    >
-                      Try Again
-                    </button>
-                  )}
-                </div>
-              ) : (
-                <div className="text-stone-500">
-                  No trends detected. The campus is suspiciously quiet...
-                </div>
-              )}
+        {/* Today's Articles */}
+        {todaysArticles.length > 0 && (
+          <section className="space-y-6 mb-8" aria-label="Today's campus trend articles">
+            {todaysArticles.map((article) => (
+              <PostCard key={article._id} article={article} />
+            ))}
+          </section>
+        )}
+
+        {/* Divider between today's and past articles */}
+        {todaysArticles.length > 0 && pastArticles.length > 0 && (
+          <div className="flex items-center justify-center my-16">
+            <div className="flex items-center w-full max-w-md">
+              <div className="flex-1 h-px bg-orange-200"></div>
+              <span className="px-4 text-sm font-medium text-stone-500 bg-orange-50/30">
+                Past Articles
+              </span>
+              <div className="flex-1 h-px bg-orange-200"></div>
             </div>
-          )}
-        </section>
+          </div>
+        )}
+
+        {/* Past Articles */}
+        {pastArticles.length > 0 && (
+          <section className="space-y-6 mt-8 mb-12" aria-label="Past campus trend articles">
+            {pastArticles.map((article) => (
+              <PostCard key={article._id} article={article} />
+            ))}
+          </section>
+        )}
+        
+        {/* No content message */}
+        {todaysArticles.length === 0 && pastArticles.length === 0 && !loading && (
+          <div className="text-center py-12">
+            {error ? (
+              <div className="text-stone-500">
+                <svg className="w-12 h-12 mx-auto mb-4 text-stone-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 12h6m-6-4h6m2 5.291A7.962 7.962 0 0112 15c-2.34 0-4.29-1.009-5.824-2.563M15 9a6 6 0 11-6 0 6 6 0 016 0z" />
+                </svg>
+                <p className="text-lg font-medium mb-2">
+                  {!isOnline ? 'No cached content available' : 'Unable to load content'}
+                </p>
+                <p className="text-sm">
+                  {!isOnline 
+                    ? 'Please check your internet connection and try again.'
+                    : 'Please try refreshing the page or check back later.'}
+                </p>
+                {isOnline && (
+                  <button
+                    onClick={handleRetry}
+                    className="mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    Try Again
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className="text-stone-500">
+                No trends detected. The campus is suspiciously quiet...
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Loading more indicator when already have content */}
-        {loading && articles.length > 0 && (
+        {loading && (todaysArticles.length > 0 || pastArticles.length > 0) && (
           <section className="text-center py-8" aria-live="polite">
             <div className="inline-flex items-center space-x-2 text-stone-600">
               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
