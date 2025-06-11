@@ -3,6 +3,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
+const cache = require('./services/cache');
 
 // Import security middleware
 const {
@@ -142,6 +143,9 @@ async function startServer() {
   try {
     await connectToDatabase();
     
+    // Initialize cache
+    await cache.connect();
+    
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
       console.log(`Health check: http://localhost:${PORT}/api/health`);
@@ -156,12 +160,14 @@ async function startServer() {
 // Graceful shutdown
 process.on('SIGINT', async () => {
   console.log('\nShutting down gracefully...');
+  await cache.disconnect();
   await mongoose.connection.close();
   process.exit(0);
 });
 
 process.on('SIGTERM', async () => {
   console.log('\nShutting down gracefully...');
+  await cache.disconnect();
   await mongoose.connection.close();
   process.exit(0);
 });

@@ -3,6 +3,7 @@ const router = express.Router();
 const pipelineService = require('../services/pipeline');
 const Comment = require('../models/Comment');
 const { auth } = require('../middleware/auth');
+const cache = require('../services/cache');
 const {
   validateArticleQuery,
   validateArticleId,
@@ -13,7 +14,27 @@ const {
 router.get('/', validateArticleQuery, async (req, res) => {
   try {
     const limit = parseInt(req.query.limit) || 10;
+    const cacheKey = `recent_articles_${limit}`;
+    
+    // Try cache first
+    const cached = await cache.get(cacheKey);
+    if (cached) {
+      return res.json({
+        success: true,
+        articles: cached.articles,
+        count: cached.count,
+        cached: true
+      });
+    }
+    
     const articles = await pipelineService.getRecentArticles(limit);
+    
+    // Cache for 5 minutes
+    const responseData = {
+      articles: articles,
+      count: articles.length
+    };
+    await cache.set(cacheKey, responseData, 300);
     
     res.json({
       success: true,
@@ -33,10 +54,33 @@ router.get('/', validateArticleQuery, async (req, res) => {
 // Get today's articles with daily summary
 router.get('/today', async (req, res) => {
   try {
+    const today = new Date().toISOString().split('T')[0];
+    const cacheKey = `todays_articles_${today}`;
+    
+    // Try cache first
+    const cached = await cache.get(cacheKey);
+    if (cached) {
+      return res.json({
+        success: true,
+        daily_summary: cached.daily_summary,
+        articles: cached.articles,
+        count: cached.count,
+        cached: true
+      });
+    }
+    
     const [todaysArticles, dailySummary] = await Promise.all([
       pipelineService.getTodaysArticles(),
       pipelineService.getDailySummary()
     ]);
+    
+    // Cache for 10 minutes
+    const responseData = {
+      daily_summary: dailySummary,
+      articles: todaysArticles,
+      count: todaysArticles.length
+    };
+    await cache.set(cacheKey, responseData, 600);
     
     res.json({
       success: true,
@@ -241,6 +285,12 @@ router.post('/generate', async (req, res) => {
     console.log('Manual pipeline trigger requested');
     const result = await pipelineService.runFullPipeline();
     
+    // Clear cache after generating new articles
+    const today = new Date().toISOString().split('T')[0];
+    await cache.del(`todays_articles_${today}`);
+    await cache.del('recent_articles_10');
+    console.log('Cache cleared after pipeline run');
+    
     res.json(result);
   } catch (error) {
     console.error('Error running pipeline:', error);
@@ -266,6 +316,38 @@ router.get('/system/stats', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to fetch system stats',
+      error: error.message
+    });
+  }
+});
+
+// Cache status endpoint
+router.get('/system/cache', async (req, res) => {
+  try {
+    const testKey = 'cache_test';
+    const testValue = { timestamp: Date.now() };
+    
+    // Test cache write
+    const setResult = await cache.set(testKey, testValue, 10);
+    
+    // Test cache read
+    const getValue = await cache.get(testKey);
+    
+    // Cleanup
+    await cache.del(testKey);
+    
+    res.json({
+      success: true,
+      cache_connected: cache.isConnected,
+      write_test: setResult,
+      read_test: getValue !== null
+    });
+  } catch (error) {
+    console.error('Error testing cache:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to test cache',
+      cache_connected: cache.isConnected,
       error: error.message
     });
   }
