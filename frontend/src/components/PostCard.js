@@ -1,47 +1,12 @@
 import React, { useState } from 'react';
-import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import CommentSection from './CommentSection';
 
 function PostCard({ article }) {
   const { isAuthenticated } = useAuth();
-  const [liked, setLiked] = useState(false);
-  const [bookmarked, setBookmarked] = useState(false);
-  const [loading, setLoading] = useState(false);
   const [expanded, setExpanded] = useState(false);
-
-  const handleLike = async () => {
-    if (!isAuthenticated) {
-      // TODO: Show login modal
-      return;
-    }
-
-    try {
-      setLoading(true);
-      await api.likeArticle(article.id);
-      setLiked(!liked);
-    } catch (error) {
-      console.error('Error liking article:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleBookmark = async () => {
-    if (!isAuthenticated) {
-      // TODO: Show login modal
-      return;
-    }
-
-    try {
-      setLoading(true);
-      await api.bookmarkArticle(article.id);
-      setBookmarked(!bookmarked);
-    } catch (error) {
-      console.error('Error bookmarking article:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [showComments, setShowComments] = useState(false);
+  const [commentCount, setCommentCount] = useState(0);
 
   const getSentimentColor = (sentiment) => {
     switch(sentiment.toLowerCase()) {
@@ -73,6 +38,10 @@ function PostCard({ article }) {
 
   const toggleExpand = () => {
     setExpanded(!expanded);
+  };
+
+  const handleCommentCountChange = (newCount) => {
+    setCommentCount(newCount);
   };
 
   return (
@@ -112,35 +81,16 @@ function PostCard({ article }) {
           <button
             onClick={(e) => {
               e.stopPropagation();
-              handleLike();
+              setShowComments(!showComments);
             }}
-            disabled={loading}
             className={`flex items-center space-x-1 text-xs transition-colors ${
-              liked 
-                ? 'text-red-600' 
-                : 'text-stone-500 hover:text-stone-700'
-            } ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
-            aria-label={liked ? "Unlike article" : "Like article"}
-          >
-            <span>{liked ? '♥' : '♡'}</span>
-            <span>Like</span>
-          </button>
-
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              handleBookmark();
-            }}
-            disabled={loading}
-            className={`flex items-center space-x-1 text-xs transition-colors ${
-              bookmarked 
+              showComments 
                 ? 'text-blue-600' 
                 : 'text-stone-500 hover:text-stone-700'
-            } ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
-            aria-label={bookmarked ? "Remove bookmark" : "Bookmark article"}
+            }`}
+            aria-label={showComments ? "Hide comments" : "Show comments"}
           >
-            <span>{bookmarked ? '★' : '☆'}</span>
-            <span>Save</span>
+            <span>{showComments ? 'Hide Comments' : `Comments (${commentCount})`}</span>
           </button>
         </div>
 
@@ -160,6 +110,14 @@ function PostCard({ article }) {
           </div>
         )}
       </footer>
+
+      {/* Comment Section */}
+      <CommentSection 
+        articleId={article._id}
+        isVisible={showComments}
+        onClose={() => setShowComments(false)}
+        onCommentCountChange={handleCommentCountChange}
+      />
     </article>
   );
 }

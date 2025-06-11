@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const pipelineService = require('../services/pipeline');
+const Comment = require('../models/Comment');
+const { auth } = require('../middleware/auth');
 const {
   validateArticleQuery,
   validateArticleId,
@@ -122,6 +124,87 @@ router.get('/:id', validateArticleId, async (req, res) => {
       message: 'Failed to fetch article',
       error: error.message
     });
+  }
+});
+
+// Get comments for a specific article
+router.get('/:id/comments', validateArticleId, async (req, res) => {
+  try {
+    const comments = await Comment.find({ article: req.params.id })
+      .sort({ created_at: -1 })
+      .lean();
+    
+    res.json({
+      success: true,
+      comments: comments,
+      count: comments.length
+    });
+  } catch (error) {
+    console.error('Error fetching comments:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch comments',
+      error: error.message
+    });
+  }
+});
+
+// Create a comment for an article
+router.post('/:id/comments', auth, async (req, res) => {
+  try {
+    const articleId = req.params.id;
+    const { content, type = 'text', audioData, audioDuration, audioFormat = 'webm' } = req.body;
+
+    // Validate article exists
+    const article = await pipelineService.getArticleById(articleId);
+    if (!article) {
+      return res.status(404).json({ error: 'Article not found' });
+    }
+
+    // Validate based on comment type
+    if (type === 'text' && !content?.trim()) {
+      return res.status(400).json({ error: 'Content is required for text comments' });
+    }
+
+    if (type === 'voice') {
+      if (!audioData) {
+        return res.status(400).json({ error: 'Audio data is required for voice comments' });
+      }
+      if (!audioDuration || audioDuration <= 0) {
+        return res.status(400).json({ error: 'Valid audio duration is required for voice comments' });
+      }
+    }
+
+    // Create comment data
+    const commentData = {
+      article: articleId,
+      author: req.user.id,
+      type
+    };
+
+    if (type === 'text') {
+      commentData.content = content.trim();
+    } else if (type === 'voice') {
+      commentData.audioData = audioData;
+      commentData.audioDuration = audioDuration;
+      commentData.audioFormat = audioFormat;
+    }
+
+    // Create the comment
+    const comment = new Comment(commentData);
+    await comment.save();
+
+    // Populate author information for response
+    await comment.populate('author', 'name email profilePicture');
+
+    res.status(201).json({
+      message: 'Comment created successfully',
+      comment
+    });
+
+  } catch (error) {
+    console.error('Error creating comment:', error);
+    res.status(500).json({ error: 'Failed to create comment' });
   }
 });
 

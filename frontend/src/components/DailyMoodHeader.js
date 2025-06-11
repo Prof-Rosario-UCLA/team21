@@ -28,20 +28,26 @@ function DailyMoodHeader({ dailySummary }) {
     if (dailySummary && dailySummary.date) {
       const summaryDate = new Date(dailySummary.date + 'T00:00:00');
       const today = new Date();
-      const todayStr = today.toLocaleDateString('en-CA', {
-        timeZone: 'America/Los_Angeles'
-      });
       
-      if (dailySummary.date === todayStr) {
-        return null; // Don't show date indicator for today
+
+      const todayStr = today.getFullYear() + '-' + 
+                      String(today.getMonth() + 1).padStart(2, '0') + '-' + 
+                      String(today.getDate()).padStart(2, '0');
+      
+      const timeDiff = new Date(dailySummary.date) - new Date(todayStr);
+      const daysDiff = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
+      
+      // Only show "old data" message if summary is from a previous day (negative daysDiff)
+      if (daysDiff < 0) {
+        const options = { 
+          weekday: 'long', 
+          month: 'long', 
+          day: 'numeric' 
+        };
+        return summaryDate.toLocaleDateString('en-US', options);
       }
       
-      const options = { 
-        weekday: 'long', 
-        month: 'long', 
-        day: 'numeric' 
-      };
-      return summaryDate.toLocaleDateString('en-US', options);
+      return null;
     }
     return null;
   };

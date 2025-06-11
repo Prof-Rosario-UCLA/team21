@@ -159,36 +159,16 @@ class ApiService {
     return this.request(`/articles/${id}`);
   }
 
-  async likeArticle(articleId) {
-    return this.request(`/articles/${articleId}/like`, {
-      method: 'POST'
+  // Comments
+  async getComments(articleId) {
+    return this.request(`/articles/${articleId}/comments`);
+  }
+
+  async createComment(articleId, commentData) {
+    return this.request(`/articles/${articleId}/comments`, {
+      method: 'POST',
+      body: JSON.stringify(commentData)
     });
-  }
-
-  async bookmarkArticle(articleId) {
-    return this.request(`/articles/${articleId}/bookmark`, {
-      method: 'POST'
-    });
-  }
-
-  async getSystemStats() {
-    return this.request('/articles/system/stats');
-  }
-
-  // Posts
-  async getPosts() {
-    // TODO: Implement posts fetching
-    throw new Error('Not implemented');
-  }
-
-  async likePost(postId) {
-    // TODO: Implement like functionality
-    throw new Error('Not implemented');
-  }
-
-  async bookmarkPost(postId) {
-    // TODO: Implement bookmark functionality
-    throw new Error('Not implemented');
   }
 }
 
