@@ -4,20 +4,28 @@ metadata:
   name: bruindigest-ingress
   namespace: bruindigest
   annotations:
-    kubernetes.io/ingress.class: "gce"
+    kubernetes.io/ingress.class: "nginx"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
 spec:
+  tls:
+  - hosts:
+    - PLACEHOLDER_DOMAIN
+    secretName: bruindigest-tls
   rules:
-  - http:
+  - host: PLACEHOLDER_DOMAIN
+    http:
       paths:
-      - path: /api/*
-        pathType: ImplementationSpecific
+      - path: /api
+        pathType: Prefix
         backend:
           service:
             name: backend-service
             port:
               number: 3001
-      - path: /*
-        pathType: ImplementationSpecific
+      - path: /
+        pathType: Prefix
         backend:
           service:
             name: frontend-service

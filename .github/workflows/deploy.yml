@@ -114,9 +114,24 @@ jobs:
           --from-literal=jwt-secret=${{ secrets.JWT_SECRET }} \
           --from-literal=mongodb-uri=${{ secrets.MONGODB_URI }}
 
+    - name: Install nginx-ingress
+      run: |-
+        kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.8.2/deploy/static/provider/cloud/deploy.yaml
+        echo "Waiting for nginx-ingress to be ready..."
+        kubectl wait --namespace ingress-nginx --for=condition=ready pod --selector=app.kubernetes.io/component=controller --timeout=300s
+
+    - name: Install cert-manager
+      run: |-
+        kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.13.0/cert-manager.yaml
+        echo "Waiting for cert-manager to be ready..."
+        kubectl wait --for=condition=available --timeout=300s deployment/cert-manager -n cert-manager
+        kubectl wait --for=condition=available --timeout=300s deployment/cert-manager-cainjector -n cert-manager
+        kubectl wait --for=condition=available --timeout=300s deployment/cert-manager-webhook -n cert-manager
+
     - name: Deploy infrastructure
       run: |-
         kubectl apply -f k8s/namespace.yaml
+        kubectl apply -f k8s/cert-manager.yaml
         kubectl apply -f k8s/redis-deployment.yaml
 
     - name: Deploy backend
@@ -127,38 +142,33 @@ jobs:
       run: |-
         sed "s/PROJECT_ID/$PROJECT_ID/g; s/:latest/:$GITHUB_SHA/g" k8s/frontend-deployment.yaml | kubectl apply -f -
 
-    - name: Deploy ingress and cronjob
+    - name: Deploy cronjob
       run: |-
-        kubectl apply -f k8s/ingress.yaml
         kubectl apply -f k8s/cronjob.yaml
 
-    - name: Get ingress IP and rebuild frontend with correct API URL
+    - name: Get nginx-ingress IP and deploy with SSL
       run: |-
-        echo "Waiting for ingress to get an external IP..."
-        for i in {1..60}; do
-          INGRESS_IP=$(kubectl get ingress bruindigest-ingress -n bruindigest -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || echo "")
+        echo "Waiting for nginx-ingress to get an external IP..."
+        for i in {1..30}; do
+          INGRESS_IP=$(kubectl get service ingress-nginx-controller -n ingress-nginx -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || echo "")
           if [[ -n "$INGRESS_IP" && "$INGRESS_IP" != "null" ]]; then
-            echo "Ingress IP found: $INGRESS_IP"
+            echo "Nginx-ingress IP found: $INGRESS_IP"
+            
+            # Deploy ingress with the actual IP-based domain and SSL
+            sed "s/PLACEHOLDER_DOMAIN/${INGRESS_IP}.nip.io/g" k8s/ingress.yaml | kubectl apply -f -
+            
+            echo "Building frontend with HTTPS API URL for ${INGRESS_IP}.nip.io"
+            cd frontend
+            docker build --build-arg REACT_APP_API_URL="https://${INGRESS_IP}.nip.io/api" -t "gcr.io/$PROJECT_ID/bruindigest-frontend:$GITHUB_SHA-final" .
+            docker push "gcr.io/$PROJECT_ID/bruindigest-frontend:$GITHUB_SHA-final"
+            
+            # Update the frontend deployment with the new image
+            kubectl set image deployment/frontend frontend=gcr.io/$PROJECT_ID/bruindigest-frontend:$GITHUB_SHA-final -n bruindigest
             break
           fi
-          echo "Waiting for ingress IP... (attempt $i/60)"
+          echo "Waiting for nginx-ingress IP... (attempt $i/30)"
           sleep 10
         done
-        
-        if [[ -z "$INGRESS_IP" || "$INGRESS_IP" == "null" ]]; then
-          echo "Warning: Could not get ingress IP, using relative URLs"
-          API_URL="/api"
-        else
-          API_URL="http://$INGRESS_IP/api"
-        fi
-        
-        echo "Building frontend with API_URL: $API_URL"
-        cd frontend
-        docker build --build-arg REACT_APP_API_URL="$API_URL" -t "gcr.io/$PROJECT_ID/bruindigest-frontend:$GITHUB_SHA-final" .
-        docker push "gcr.io/$PROJECT_ID/bruindigest-frontend:$GITHUB_SHA-final"
-        
-        # Update the frontend deployment with the new image
-        kubectl set image deployment/frontend frontend=gcr.io/$PROJECT_ID/bruindigest-frontend:$GITHUB_SHA-final -n bruindigest
 
     - name: Wait for deployment
       run: |-
