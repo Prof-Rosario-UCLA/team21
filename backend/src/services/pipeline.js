@@ -3,6 +3,7 @@ const geminiService = require('./gemini');
 const Article = require('../models/Article');
 const Metadata = require('../models/Metadata');
 const DailySummary = require('../models/DailySummary');
+const { getPSTDateString, getPSTStartOfDay, getPSTEndOfDay } = require('../utils/dateUtils');
 
 class PipelineService {
   constructor() {
@@ -70,7 +71,7 @@ class PipelineService {
 
       // Generate articles and daily summary in one API call
       const generatedArticles = [];
-      const today = new Date().toISOString().split('T')[0];
+      const today = getPSTDateString();
       let dailySummary = null;
       
       if (articleOpportunities.length > 0) {
@@ -210,9 +211,8 @@ class PipelineService {
 
   async getTodaysArticles() {
     try {
-      const today = new Date();
-      const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-      const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+      const startOfDay = getPSTStartOfDay();
+      const endOfDay = getPSTEndOfDay();
       
       const articles = await Article.find({
         is_published: true,
@@ -228,8 +228,7 @@ class PipelineService {
 
   async getPastArticles() {
     try {
-      const today = new Date();
-      const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      const startOfDay = getPSTStartOfDay();
       
       const articles = await Article.find({
         is_published: true,
@@ -248,7 +247,17 @@ class PipelineService {
       if (date) {
         return await DailySummary.getSummaryByDate(date);
       } else {
-        return await DailySummary.getTodaysSummary();
+        // First try to get today's summary
+        let summary = await DailySummary.getTodaysSummary();
+        
+        // If no summary for today, get the most recent summary
+        if (!summary) {
+          summary = await DailySummary.findOne()
+            .sort({ date: -1 })
+            .populate('referenced_articles');
+        }
+        
+        return summary;
       }
     } catch (error) {
       console.error('Error fetching daily summary:', error);

@@ -24,20 +24,38 @@ function DailyMoodHeader({ dailySummary }) {
     return today.toLocaleDateString('en-US', options);
   };
 
+  const getSummaryDate = () => {
+    if (dailySummary && dailySummary.date) {
+      const summaryDate = new Date(dailySummary.date + 'T00:00:00');
+      const today = new Date();
+      const todayStr = today.toLocaleDateString('en-CA', {
+        timeZone: 'America/Los_Angeles'
+      });
+      
+      if (dailySummary.date === todayStr) {
+        return null; // Don't show date indicator for today
+      }
+      
+      const options = { 
+        weekday: 'long', 
+        month: 'long', 
+        day: 'numeric' 
+      };
+      return summaryDate.toLocaleDateString('en-US', options);
+    }
+    return null;
+  };
+
   const getSentimentColor = (sentiment) => {
     switch (sentiment) {
-      case 'discussion':
-        return 'text-blue-800';
-      case 'question':
-        return 'text-purple-800';
-      case 'announcement':
-        return 'text-yellow-800';
-      case 'experience':
+      case 'positive':
         return 'text-green-800';
-      case 'advice':
-        return 'text-orange-800';
-      case 'resource':
-        return 'text-teal-800';
+      case 'negative':
+        return 'text-red-800';
+      case 'neutral':
+        return 'text-gray-800';
+      case 'mixed':
+        return 'text-yellow-800';
       default:
         return 'text-stone-800';
     }
@@ -45,18 +63,14 @@ function DailyMoodHeader({ dailySummary }) {
 
   const getSentimentBg = (sentiment) => {
     switch (sentiment) {
-      case 'discussion':
-        return 'from-blue-50 to-blue-100';
-      case 'question':
-        return 'from-purple-50 to-purple-100';
-      case 'announcement':
-        return 'from-yellow-50 to-yellow-100';
-      case 'experience':
+      case 'positive':
         return 'from-green-50 to-green-100';
-      case 'advice':
-        return 'from-orange-50 to-orange-100';
-      case 'resource':
-        return 'from-teal-50 to-teal-100';
+      case 'negative':
+        return 'from-red-50 to-red-100';
+      case 'neutral':
+        return 'from-gray-50 to-gray-100';
+      case 'mixed':
+        return 'from-yellow-50 to-yellow-100';
       default:
         return 'from-stone-50 to-stone-100';
     }
@@ -66,7 +80,7 @@ function DailyMoodHeader({ dailySummary }) {
     <header className={`text-center py-8 bg-gradient-to-r ${getSentimentBg(dailySummary.overall_sentiment)} rounded-lg mb-6 border border-gray-100`}>
       <div className="max-w-2xl mx-auto px-4">
         <time className="text-sm text-stone-600 font-medium block mb-3">
-          {formatDate()}
+          {getSummaryDate() ? `Latest mood from ${getSummaryDate()}` : formatDate()}
         </time>
         
         <div className="flex items-center justify-center space-x-3 mb-3">
@@ -84,6 +98,11 @@ function DailyMoodHeader({ dailySummary }) {
         
         <div className="mt-4 text-xs text-stone-500">
           Based on {dailySummary.article_count} trending {dailySummary.article_count === 1 ? 'story' : 'stories'}
+          {getSummaryDate() && (
+            <span className="block mt-1 text-orange-600">
+              📅 No fresh mood today - showing recent campus vibe
+            </span>
+          )}
         </div>
       </div>
     </header>
