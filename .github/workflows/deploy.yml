@@ -94,7 +94,7 @@ jobs:
     - name: Build and push frontend image
       run: |-
         cd frontend
-        docker build -t "gcr.io/$PROJECT_ID/bruindigest-frontend:$GITHUB_SHA" .
+        docker build --build-arg REACT_APP_API_URL=/api -t "gcr.io/$PROJECT_ID/bruindigest-frontend:$GITHUB_SHA" .
         docker push "gcr.io/$PROJECT_ID/bruindigest-frontend:$GITHUB_SHA"
 
     - name: Build and push backend image
@@ -131,6 +131,34 @@ jobs:
       run: |-
         kubectl apply -f k8s/ingress.yaml
         kubectl apply -f k8s/cronjob.yaml
+
+    - name: Get ingress IP and rebuild frontend with correct API URL
+      run: |-
+        echo "Waiting for ingress to get an external IP..."
+        for i in {1..60}; do
+          INGRESS_IP=$(kubectl get ingress bruindigest-ingress -n bruindigest -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || echo "")
+          if [[ -n "$INGRESS_IP" && "$INGRESS_IP" != "null" ]]; then
+            echo "Ingress IP found: $INGRESS_IP"
+            break
+          fi
+          echo "Waiting for ingress IP... (attempt $i/60)"
+          sleep 10
+        done
+        
+        if [[ -z "$INGRESS_IP" || "$INGRESS_IP" == "null" ]]; then
+          echo "Warning: Could not get ingress IP, using relative URLs"
+          API_URL="/api"
+        else
+          API_URL="http://$INGRESS_IP/api"
+        fi
+        
+        echo "Building frontend with API_URL: $API_URL"
+        cd frontend
+        docker build --build-arg REACT_APP_API_URL="$API_URL" -t "gcr.io/$PROJECT_ID/bruindigest-frontend:$GITHUB_SHA-final" .
+        docker push "gcr.io/$PROJECT_ID/bruindigest-frontend:$GITHUB_SHA-final"
+        
+        # Update the frontend deployment with the new image
+        kubectl set image deployment/frontend frontend=gcr.io/$PROJECT_ID/bruindigest-frontend:$GITHUB_SHA-final -n bruindigest
 
     - name: Wait for deployment
       run: |-
