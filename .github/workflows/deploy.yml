@@ -1,0 +1,147 @@
+name: Build, Test, and Deploy to GKE
+
+on:
+  push:
+    branches: [ main ]
+
+env:
+  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  GKE_CLUSTER: bruindigest-cluster
+  GKE_ZONE: us-central1-a
+
+jobs:
+  # test:
+  #   name: Run Tests
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #   - name: Checkout
+  #     uses: actions/checkout@v3
+  #   
+  #   - name: Setup Node.js
+  #     uses: actions/setup-node@v3
+  #     with:
+  #       node-version: '18'
+  #   
+  #   - name: Install frontend dependencies
+  #     run: |
+  #       cd frontend
+  #       npm install
+  #   
+  #   - name: Install backend dependencies  
+  #     run: |
+  #       cd backend
+  #       npm install
+  #   
+  #   - name: Run frontend tests
+  #     run: |
+  #       cd frontend
+  #       npm test -- --coverage --watchAll=false --passWithNoTests
+  #   
+  #   - name: Run backend tests
+  #     run: |
+  #       cd backend
+  #       npm test
+
+  build-and-deploy:
+    name: Build and Deploy to GKE
+    runs-on: ubuntu-latest
+    # needs: test
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+
+    - name: Authenticate to Google Cloud
+      uses: google-github-actions/auth@v1
+      with:
+        credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+    - name: Setup Cloud SDK
+      uses: google-github-actions/setup-gcloud@v1
+      with:
+        project_id: ${{ secrets.GCP_PROJECT_ID }}
+
+    - name: Configure Docker to use gcloud as credential helper
+      run: |-
+        gcloud --quiet auth configure-docker
+
+    - name: Create cluster if not exists
+      run: |-
+        if ! gcloud container clusters describe "$GKE_CLUSTER" --zone="$GKE_ZONE" --project="$PROJECT_ID" >/dev/null 2>&1; then
+          echo "Creating GKE cluster..."
+          gcloud container clusters create "$GKE_CLUSTER" \
+            --zone="$GKE_ZONE" \
+            --num-nodes=2 \
+            --machine-type=e2-small \
+            --project="$PROJECT_ID" \
+            --enable-ip-alias \
+            --no-enable-basic-auth \
+            --no-issue-client-certificate \
+            --disk-size=20GB
+        else
+          echo "Cluster already exists"
+        fi
+
+    - name: Install GKE auth plugin
+      run: |-
+        gcloud components install gke-gcloud-auth-plugin
+
+    - name: Get GKE credentials
+      run: |-
+        gcloud container clusters get-credentials "$GKE_CLUSTER" --zone "$GKE_ZONE" --project "$PROJECT_ID"
+
+    - name: Build and push frontend image
+      run: |-
+        cd frontend
+        docker build -t "gcr.io/$PROJECT_ID/bruindigest-frontend:$GITHUB_SHA" .
+        docker push "gcr.io/$PROJECT_ID/bruindigest-frontend:$GITHUB_SHA"
+
+    - name: Build and push backend image
+      run: |-
+        cd backend
+        docker build -t "gcr.io/$PROJECT_ID/bruindigest-backend:$GITHUB_SHA" .
+        docker push "gcr.io/$PROJECT_ID/bruindigest-backend:$GITHUB_SHA"
+
+    - name: Create secrets
+      run: |-
+        kubectl create namespace bruindigest --dry-run=client -o yaml | kubectl apply -f -
+        kubectl delete secret app-secrets -n bruindigest --ignore-not-found=true
+        kubectl create secret generic app-secrets -n bruindigest \
+          --from-literal=gemini-api-key=${{ secrets.GEMINI_API_KEY }} \
+          --from-literal=reddit-client-id=${{ secrets.REDDIT_CLIENT_ID }} \
+          --from-literal=reddit-client-secret=${{ secrets.REDDIT_CLIENT_SECRET }} \
+          --from-literal=jwt-secret=${{ secrets.JWT_SECRET }} \
+          --from-literal=mongodb-uri=${{ secrets.MONGODB_URI }}
+
+    - name: Deploy infrastructure
+      run: |-
+        kubectl apply -f k8s/namespace.yaml
+        kubectl apply -f k8s/redis-deployment.yaml
+
+    - name: Deploy backend
+      run: |-
+        sed "s/PROJECT_ID/$PROJECT_ID/g; s/:latest/:$GITHUB_SHA/g" k8s/backend-deployment.yaml | kubectl apply -f -
+
+    - name: Deploy frontend  
+      run: |-
+        sed "s/PROJECT_ID/$PROJECT_ID/g; s/:latest/:$GITHUB_SHA/g" k8s/frontend-deployment.yaml | kubectl apply -f -
+
+    - name: Deploy ingress and cronjob
+      run: |-
+        kubectl apply -f k8s/ingress.yaml
+        kubectl apply -f k8s/cronjob.yaml
+
+    - name: Wait for deployment
+      run: |-
+        kubectl rollout status deployment/backend -n bruindigest --timeout=300s
+        kubectl rollout status deployment/frontend -n bruindigest --timeout=300s
+        
+    - name: Get deployment info
+      run: |-
+        echo "=== Services ==="
+        kubectl get services -n bruindigest
+        echo "=== Ingress ==="
+        kubectl get ingress -n bruindigest
+        echo "=== Pods ==="
+        kubectl get pods -n bruindigest 

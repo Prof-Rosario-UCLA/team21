@@ -22,7 +22,7 @@ backend/           # Express.js API server
 - Database: MongoDB with Mongoose 
 - Caching: Redis (TODO)
 - AI: Gemini + PRAW
-- Deployment: Google Kubernetes Engine (TODO)
+- Deployment: Github Actions + GKE
 
 ## Setup
 

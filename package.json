@@ -1,0 +1,15 @@
+{
+  "name": "bruindigest",
+  "version": "1.0.0",
+  "description": "UCLA Reddit News Summarizer",
+  "private": true,
+  "scripts": {
+    "test": "echo 'No root tests configured'",
+    "test:frontend": "cd frontend && npm test",
+    "test:backend": "cd backend && npm test"
+  },
+  "workspaces": [
+    "frontend",
+    "backend"
+  ]
+} 
