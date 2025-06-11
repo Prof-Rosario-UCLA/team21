@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { getPSTDateString } = require('../utils/dateUtils');
 
 const dailySummarySchema = new mongoose.Schema({
   date: {
@@ -49,7 +50,7 @@ const dailySummarySchema = new mongoose.Schema({
 dailySummarySchema.index({ date: -1 });
 
 dailySummarySchema.statics.getTodaysSummary = async function() {
-  const today = new Date().toISOString().split('T')[0];
+  const today = getPSTDateString();
   return await this.findOne({ date: today }).populate('referenced_articles');
 };
 

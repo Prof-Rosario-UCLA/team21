@@ -24,6 +24,28 @@ function DailyMoodHeader({ dailySummary }) {
     return today.toLocaleDateString('en-US', options);
   };
 
+  const getSummaryDate = () => {
+    if (dailySummary && dailySummary.date) {
+      const summaryDate = new Date(dailySummary.date + 'T00:00:00');
+      const today = new Date();
+      const todayStr = today.toLocaleDateString('en-CA', {
+        timeZone: 'America/Los_Angeles'
+      });
+      
+      if (dailySummary.date === todayStr) {
+        return null; // Don't show date indicator for today
+      }
+      
+      const options = { 
+        weekday: 'long', 
+        month: 'long', 
+        day: 'numeric' 
+      };
+      return summaryDate.toLocaleDateString('en-US', options);
+    }
+    return null;
+  };
+
   const getSentimentColor = (sentiment) => {
     switch (sentiment) {
       case 'positive':
@@ -33,19 +55,7 @@ function DailyMoodHeader({ dailySummary }) {
       case 'neutral':
         return 'text-gray-800';
       case 'mixed':
-        return 'text-purple-800';
-      case 'discussion':
-        return 'text-blue-800';
-      case 'question':
-        return 'text-purple-800';
-      case 'announcement':
         return 'text-yellow-800';
-      case 'experience':
-        return 'text-green-800';
-      case 'advice':
-        return 'text-orange-800';
-      case 'resource':
-        return 'text-teal-800';
       default:
         return 'text-stone-800';
     }
@@ -55,7 +65,7 @@ function DailyMoodHeader({ dailySummary }) {
     <header className="text-center py-8 bg-orange-50/30 rounded-lg mb-6">
       <div className="max-w-2xl mx-auto px-4">
         <time className="text-sm text-stone-600 font-medium block mb-3">
-          {formatDate()}
+          {getSummaryDate() ? `Latest mood from ${getSummaryDate()}` : formatDate()}
         </time>
         
         <div className="flex items-center justify-center space-x-3 mb-3">
@@ -73,6 +83,11 @@ function DailyMoodHeader({ dailySummary }) {
         
         <div className="mt-4 text-xs text-stone-500">
           Based on {dailySummary.article_count} trending {dailySummary.article_count === 1 ? 'story' : 'stories'}
+          {getSummaryDate() && (
+            <span className="block mt-1 text-orange-600">
+              📅 No fresh mood today - showing recent campus vibe
+            </span>
+          )}
         </div>
       </div>
     </header>
