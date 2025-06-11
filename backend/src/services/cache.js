@@ -8,26 +8,20 @@ class CacheService {
 
   async connect() {
     try {
+      const redisHost = process.env.REDIS_HOST || 'localhost';
+      const redisPort = process.env.REDIS_PORT || 6379;
+      
+      console.log(`Attempting to connect to Redis at ${redisHost}:${redisPort}`);
+      
       this.client = redis.createClient({
-        host: process.env.REDIS_HOST || 'localhost',
-        port: process.env.REDIS_PORT || 6379,
-        retry_strategy: (options) => {
-          if (options.error && options.error.code === 'ECONNREFUSED') {
-            console.log('Redis connection refused');
-            return new Error('Redis server connection refused');
-          }
-          if (options.total_retry_time > 1000 * 60 * 60) {
-            return new Error('Redis retry time exhausted');
-          }
-          if (options.attempt > 10) {
-            return undefined;
-          }
-          return Math.min(options.attempt * 100, 3000);
+        socket: {
+          host: redisHost,
+          port: parseInt(redisPort),
         }
       });
 
       this.client.on('connect', () => {
-        console.log('Redis client connected');
+        console.log(`Redis client connected to ${redisHost}:${redisPort}`);
         this.isConnected = true;
       });
 
@@ -36,7 +30,18 @@ class CacheService {
         this.isConnected = false;
       });
 
+      this.client.on('ready', () => {
+        console.log('Redis client ready');
+        this.isConnected = true;
+      });
+
+      this.client.on('end', () => {
+        console.log('Redis client disconnected');
+        this.isConnected = false;
+      });
+
       await this.client.connect();
+      console.log('Redis connection established successfully');
     } catch (error) {
       console.log('Failed to connect to Redis:', error.message);
       this.isConnected = false;

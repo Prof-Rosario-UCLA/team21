@@ -143,8 +143,13 @@ async function startServer() {
   try {
     await connectToDatabase();
     
-    // Initialize cache
-    await cache.connect();
+    // Initialize cache (non-blocking)
+    try {
+      await cache.connect();
+      console.log('Cache service initialized successfully');
+    } catch (error) {
+      console.log('Cache service failed to initialize, continuing without cache:', error.message);
+    }
     
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
