@@ -29,22 +29,22 @@ const createRateLimit = (windowMs, max, message) => {
   });
 };
 
-// Different rate limits for different endpoints
+// Different rate limits for different endpoints - DEMO FRIENDLY LIMITS
 const generalLimiter = createRateLimit(
-  15 * 60 * 1000, // 15 minutes
-  100, // 100 requests
+  1 * 60 * 1000, // 1 minute window
+  10000, // 10000 requests per minute
   'Too many requests from this IP, please try again later.'
 );
 
 const authLimiter = createRateLimit(
-  15 * 60 * 1000, // 15 minutes
-  5, // 5 attempts per 15 minutes
+  1 * 60 * 1000, // 1 minute window
+  500, // 500 auth attempts per minute
   'Too many authentication attempts, please try again later.'
 );
 
 const apiLimiter = createRateLimit(
-  5 * 60 * 1000, // 5 minutes
-  50, // 50 requests per 5 minutes
+  1 * 60 * 1000, // 1 minute window
+  10000, // 10000 API requests per minute
   'API rate limit exceeded, please try again later.'
 );
 
