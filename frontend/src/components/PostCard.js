@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import CommentSection from './CommentSection';
+import api from '../services/api';
 
 function PostCard({ article }) {
   const { isAuthenticated } = useAuth();
@@ -39,6 +40,22 @@ function PostCard({ article }) {
   const toggleExpand = () => {
     setExpanded(!expanded);
   };
+
+  useEffect(() => {
+    const loadCommentCount = async () => {
+      try {
+        const response = await api.getComments(article._id);
+        const comments = response.comments || [];
+        setCommentCount(comments.length);
+      } catch (error) {
+        console.error('Error loading comment count:', error);
+      }
+    };
+
+    if (article._id) {
+      loadCommentCount();
+    }
+  }, [article._id]);
 
   const handleCommentCountChange = (newCount) => {
     setCommentCount(newCount);
